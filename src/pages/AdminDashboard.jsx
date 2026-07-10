@@ -792,7 +792,14 @@ export default function AdminDashboard() {
                     {cursos.length === 0 ? <p className="text-slate-500 italic">No hay cursos registrados.</p> :
                       cursos.map((c, i) => (
                         <div key={i} className="flex justify-between items-center bg-slate-900 border border-white/10 p-4 rounded-xl shadow-sm">
-                          <span className="font-bold text-white">{c.nombre} <span className="text-sm font-normal text-slate-400">({c.nivel})</span></span>
+                          <span className="font-bold text-white flex items-center gap-3">
+                            {c.nombre} <span className="text-sm font-normal text-slate-400">({c.nivel})</span>
+                            {c.docente_id ? (
+                               <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Docente ID: {c.docente_id}</span>
+                            ) : (
+                               <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Sin docente asignado</span>
+                            )}
+                          </span>
                           <span className="text-sm bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-500">{c.grado}° {c.nivel === 'SECUNDARIA' ? 'Sec' : 'Pri'} "{c.seccion}"</span>
                         </div>
                       ))
