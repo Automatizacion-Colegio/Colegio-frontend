@@ -73,7 +73,9 @@ export default function AdminDashboard() {
   const [silaboGenTodosResult, setSilaboGenTodosResult] = useState(null)
 
   const [showCursoModal, setShowCursoModal] = useState(false)
-  const [cursoForm, setCursoForm] = useState({ nombre: '', nivel: 'SECUNDARIA', grado: '1', seccion: 'A' })
+  const [cursoForm, setCursoForm] = useState({ nombre: '', nivel: 'SECUNDARIA' })
+  const GRADOS = { PRIMARIA: [1,2,3,4,5,6], SECUNDARIA: [1,2,3,4,5] }
+  const [gradosSeleccionados, setGradosSeleccionados] = useState([1,2,3,4,5])
 
   const fetchData = () => {
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/telemetry`, { headers: { Authorization: `Bearer ${token}` }})
@@ -148,18 +150,27 @@ export default function AdminDashboard() {
   const handleCrearCurso = async (e) => {
     e.preventDefault()
     setMsg(null)
+    if (gradosSeleccionados.length === 0) {
+      setMsg({ text: 'Debes seleccionar al menos un grado.', type: 'error' })
+      return
+    }
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(cursoForm)
+        body: JSON.stringify({
+          nombre: cursoForm.nombre,
+          nivel: cursoForm.nivel,
+          grados: gradosSeleccionados
+        })
       })
       const data = await res.json()
       setMsg({ text: data.message || data.detail || 'Curso creado exitosamente', type: res.ok ? 'success' : 'error' })
       if(res.ok) {
         setShowCursoModal(false)
         fetchData()
-        setCursoForm({ nombre: '', nivel: 'SECUNDARIA', grado: '1', seccion: 'A' })
+        setCursoForm({ nombre: '', nivel: 'SECUNDARIA' })
+        setGradosSeleccionados([1,2,3,4,5])
       }
     } catch(err) {
       setMsg({ text: 'Error de conexión', type: 'error' })
@@ -1445,7 +1456,7 @@ export default function AdminDashboard() {
       
       {showCursoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-slate-950 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl relative">
+          <div className="bg-slate-950 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setShowCursoModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">✕</button>
             <h3 className="text-xl font-bold text-yellow-500 mb-6">Aperturar Nuevo Curso</h3>
             <form onSubmit={handleCrearCurso} className="space-y-4">
@@ -1455,29 +1466,49 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Nivel</label>
-                <select className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors" value={cursoForm.nivel} onChange={e => setCursoForm({...cursoForm, nivel: e.target.value})}>
+                <select className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors"
+                  value={cursoForm.nivel}
+                  onChange={e => {
+                    const nuevoNivel = e.target.value
+                    setCursoForm({...cursoForm, nivel: nuevoNivel})
+                    setGradosSeleccionados(GRADOS[nuevoNivel]) // reset a todos marcados
+                  }}>
                   <option value="PRIMARIA">Primaria</option>
                   <option value="SECUNDARIA">Secundaria</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Grado</label>
-                  <select className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors" value={cursoForm.grado} onChange={e => setCursoForm({...cursoForm, grado: e.target.value})}>
-                    {[1,2,3,4,5,6].map(g => <option key={g} value={g}>{g}°</option>)}
-                  </select>
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Grados aplicables</label>
+                <p className="text-xs text-slate-500 mb-3">Todos marcados por defecto. Destilda los que no apliquen.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {GRADOS[cursoForm.nivel].map(g => (
+                    <label key={g} className={`flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 border transition-all
+                      ${gradosSeleccionados.includes(g)
+                        ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
+                        : 'border-white/10 bg-slate-900 text-slate-400'}`}>
+                      <input
+                        type="checkbox"
+                        checked={gradosSeleccionados.includes(g)}
+                        onChange={() => {
+                          setGradosSeleccionados(prev =>
+                            prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g].sort((a,b) => a - b)
+                          )
+                        }}
+                        className="accent-yellow-500"
+                      />
+                      <span className="font-semibold">{g}°</span>
+                    </label>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Sección</label>
-                  <select className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors" value={cursoForm.seccion} onChange={e => setCursoForm({...cursoForm, seccion: e.target.value})}>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                  </select>
-                </div>
+                {gradosSeleccionados.length === 0 && (
+                  <p className="text-xs text-red-400 mt-2">⚠ Selecciona al menos un grado.</p>
+                )}
               </div>
-              <button type="submit" className="w-full py-4 mt-6 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl font-bold transition-all">
-                Guardar Curso
+              <button type="submit" disabled={gradosSeleccionados.length === 0}
+                className="w-full py-4 mt-6 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all">
+                {gradosSeleccionados.length > 0
+                  ? `Aplicar a ${gradosSeleccionados.length} grado${gradosSeleccionados.length > 1 ? 's' : ''} seleccionado${gradosSeleccionados.length > 1 ? 's' : ''}`
+                  : 'Selecciona al menos un grado'}
               </button>
             </form>
           </div>

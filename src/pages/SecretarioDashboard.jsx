@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import useAuthStore from '../store/useAuthStore'
 import ChatWidget from '../components/ChatWidget'
-import { Wallet, Mail, Camera, Send, LogOut } from 'lucide-react'
+import { Wallet, Mail, Camera, Send, LogOut, Users, CheckCircle, XCircle } from 'lucide-react'
 
 export default function SecretarioDashboard() {
   const { token, logout } = useAuthStore()
@@ -25,8 +25,44 @@ export default function SecretarioDashboard() {
   // Alumnos
   const [alumnos, setAlumnos] = useState([])
 
+  // Admisiones State
+  const [admisiones, setAdmisiones] = useState([])
+
+  const fetchAdmisiones = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/admisiones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      setAdmisiones(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleCambiarEstadoAdmision = async (id, estado) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/admisiones/${id}/estado?estado=${estado}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        alert(`Estado cambiado a ${estado} exitosamente.`)
+        fetchAdmisiones()
+      } else {
+        const err = await res.json()
+        alert(err.detail)
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Error cambiando estado')
+    }
+  }
+
+
   useEffect(() => {
     fetchCaja()
+    fetchAdmisiones()
     // Trick to get all students, using a dummy filter or an endpoint we already have
     // We can fetch from an admin endpoint for now
   }, [token])
@@ -199,6 +235,7 @@ export default function SecretarioDashboard() {
         <nav className="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-3 mt-2">Menú</p>
           <TabButton id="caja" label="Caja" icon={<Wallet className="w-4 h-4" />} />
+          <TabButton id="admisiones" label="Admisiones" icon={<Users className="w-4 h-4" />} />
 
         </nav>
         
