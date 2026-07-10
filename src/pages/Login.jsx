@@ -72,16 +72,6 @@ export default function Login() {
           </div>
         )}
 
-        <div className="mb-6 p-4 rounded-xl bg-blue-900/40 border border-blue-800/50 text-blue-200 text-xs text-left">
-          <p className="font-bold mb-2">Credenciales de prueba:</p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li><span className="font-mono text-white">admin / admin123</span> (Directora)</li>
-            <li><span className="font-mono text-white">docente1 / doc123</span> (Docente)</li>
-            <li><span className="font-mono text-white">psico1 / psico123</span> (Psicología)</li>
-            <li><span className="font-mono text-white">padre1 / padre123</span> (Admisión)</li>
-            <li><span className="font-mono text-white">secretario1 / sec123</span> (Caja)</li>
-          </ul>
-        </div>
 
         <div className="mb-5">
           <label className="block text-slate-300 text-sm font-medium mb-2">Usuario</label>
