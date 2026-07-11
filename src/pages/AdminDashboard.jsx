@@ -799,22 +799,55 @@ export default function AdminDashboard() {
                       + Aperturar Curso
                     </button>
                   </div>
-                  <div className="space-y-3">
-                    {cursos.length === 0 ? <p className="text-slate-500 italic">No hay cursos registrados.</p> :
-                      cursos.map((c, i) => (
-                        <div key={i} className="flex justify-between items-center bg-slate-900 border border-white/10 p-4 rounded-xl shadow-sm">
-                          <span className="font-bold text-white flex items-center gap-3">
-                            {c.nombre} <span className="text-sm font-normal text-slate-400">({c.nivel})</span>
-                            {c.docente_id ? (
-                               <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Docente ID: {c.docente_id}</span>
-                            ) : (
-                               <span className="text-xs bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Sin docente asignado</span>
-                            )}
-                          </span>
-                          <span className="text-sm bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-500">{c.grado}° {c.nivel === 'SECUNDARIA' ? 'Sec' : 'Pri'} "{c.seccion}"</span>
+                  <div className="w-full">
+                    {(() => {
+                      if (cursos.length === 0) return <p className="text-slate-400 italic text-center p-12 bg-white/5 rounded-3xl border border-white/10 shadow-inner">No hay cursos registrados. Haz clic en "+ Aperturar Curso" para comenzar.</p>;
+                      
+                      const grouped = cursos.reduce((acc, c) => {
+                        const key = `${c.nivel} - ${c.grado}° "${c.seccion}"`;
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(c);
+                        return acc;
+                      }, {});
+
+                      // Sort keys so PRIMARIA appears before SECUNDARIA and lower grades first
+                      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+                        const lvlA = a.includes('PRIMARIA') ? 1 : 2;
+                        const lvlB = b.includes('PRIMARIA') ? 1 : 2;
+                        if (lvlA !== lvlB) return lvlA - lvlB;
+                        return a.localeCompare(b);
+                      });
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {sortedKeys.map((groupKey) => (
+                            <div key={groupKey} className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl hover:border-yellow-500/30 transition-all group flex flex-col h-full">
+                              <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 p-4 border-b border-white/10 flex items-center justify-between">
+                                <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></span>
+                                  {groupKey}
+                                </h3>
+                                <span className="text-xs bg-black/30 px-3 py-1 rounded-lg text-yellow-400 font-bold border border-yellow-500/20 shadow-inner">
+                                  {grouped[groupKey].length} Cursos
+                                </span>
+                              </div>
+                              <div className="p-4 space-y-3 flex-1">
+                                {grouped[groupKey].map((c, i) => (
+                                  <div key={i} className="flex justify-between items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 group-hover:border-white/10">
+                                    <span className="font-bold text-slate-200">{c.nombre}</span>
+                                    {c.docente_id ? (
+                                      <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-300 px-2 py-1 rounded-md whitespace-nowrap font-medium">Prof. ID: {c.docente_id}</span>
+                                    ) : (
+                                      <span className="text-[10px] bg-red-500/20 border border-red-500/30 text-red-300 px-2 py-1 rounded-md whitespace-nowrap font-medium animate-pulse">Sin asignar</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))
-                    }
+                      );
+                    })()}
                   </div>
                   </div>
                 </div>
