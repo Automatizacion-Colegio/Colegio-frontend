@@ -7,18 +7,147 @@ import {
   RefreshCw, LogOut, ChevronRight, Zap
 } from 'lucide-react'
 
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const C = {
+  bg:          '#0a0a0f',
+  sidebar:     '#0f0f18',
+  surface:     '#13131e',
+  surfaceHigh: '#1a1a28',
+  border:      'rgba(255,255,255,0.07)',
+  borderHov:   'rgba(255,255,255,0.13)',
+  accent:      '#4f6ef7',
+  accentMuted: 'rgba(79,110,247,0.15)',
+  textPrimary: '#e8e9f0',
+  textSec:     '#8b8fa8',
+  textMuted:   '#4a4d62',
+  success:     '#3a8a5c',
+  successText: '#6bcf9a',
+  successBg:   'rgba(58,138,92,0.12)',
+  danger:      '#8a3a3a',
+  dangerText:  '#cf6b6b',
+  dangerBg:    'rgba(138,58,58,0.12)',
+  warn:        '#7a6a32',
+  warnText:    '#c9a84c',
+  warnBg:      'rgba(122,106,50,0.12)',
+}
+
+// ─── Error Boundary ──────────────────────────────────────────────────────────
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, errorMsg: '' }; }
   static getDerivedStateFromError(error) { return { hasError: true, errorMsg: error.toString() }; }
   componentDidCatch(error, errorInfo) { console.error("ErrorBoundary caught:", error, errorInfo); }
   render() {
     if (this.state.hasError) {
-      return <div className="p-10 bg-red-900/50 text-white rounded-xl"><h2>¡Error de Renderizado!</h2><p className="font-mono text-sm mt-2 text-red-200">{this.state.errorMsg}</p></div>;
+      return (
+        <div style={{ padding: '2rem', background: C.dangerBg, border: `1px solid ${C.dangerText}30`, borderRadius: 12 }}>
+          <h2 style={{ color: C.dangerText, marginBottom: 8 }}>Error de Renderizado</h2>
+          <p style={{ fontFamily: 'monospace', fontSize: 13, color: C.textSec }}>{this.state.errorMsg}</p>
+        </div>
+      );
     }
     return this.props.children;
   }
 }
 
+// ─── Shared UI Atoms ─────────────────────────────────────────────────────────
+const Card = ({ children, style = {}, noPad = false }) => (
+  <div style={{
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 14,
+    padding: noPad ? 0 : '1.5rem',
+    ...style
+  }}>
+    {children}
+  </div>
+)
+
+const SectionTitle = ({ children, sub }) => (
+  <div style={{ marginBottom: '1.5rem' }}>
+    <h2 style={{ fontSize: 18, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{children}</h2>
+    {sub && <p style={{ color: C.textSec, fontSize: 13, marginTop: 4 }}>{sub}</p>}
+  </div>
+)
+
+const Badge = ({ label, variant = 'neutral' }) => {
+  const variants = {
+    success: { bg: C.successBg, color: C.successText, border: `1px solid ${C.success}40` },
+    danger:  { bg: C.dangerBg,  color: C.dangerText,  border: `1px solid ${C.danger}40` },
+    warn:    { bg: C.warnBg,    color: C.warnText,    border: `1px solid ${C.warn}40` },
+    accent:  { bg: C.accentMuted, color: C.accent,    border: `1px solid ${C.accent}40` },
+    neutral: { bg: 'rgba(255,255,255,0.05)', color: C.textSec, border: `1px solid ${C.border}` },
+  }
+  const s = variants[variant]
+  return (
+    <span style={{
+      display: 'inline-block', padding: '3px 10px', borderRadius: 6,
+      fontSize: 11, fontWeight: 600, letterSpacing: '0.02em',
+      background: s.bg, color: s.color, border: s.border,
+    }}>{label}</span>
+  )
+}
+
+const Btn = ({ children, onClick, disabled, variant = 'primary', size = 'md', style = {}, type = 'button' }) => {
+  const sizes = { sm: { padding: '6px 14px', fontSize: 12 }, md: { padding: '10px 20px', fontSize: 13 }, lg: { padding: '13px 24px', fontSize: 14 } }
+  const variants = {
+    primary: { background: C.accent, color: '#fff', border: `1px solid ${C.accent}` },
+    ghost:   { background: 'transparent', color: C.textSec, border: `1px solid ${C.border}` },
+    danger:  { background: C.dangerBg, color: C.dangerText, border: `1px solid ${C.danger}40` },
+    success: { background: C.successBg, color: C.successText, border: `1px solid ${C.success}40` },
+    muted:   { background: 'rgba(255,255,255,0.04)', color: C.textSec, border: `1px solid ${C.border}` },
+  }
+  const v = variants[variant]
+  const sz = sizes[size]
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} style={{
+      ...sz, ...v,
+      borderRadius: 9, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.45 : 1, transition: 'all 0.15s', display: 'inline-flex',
+      alignItems: 'center', gap: 6, ...style
+    }}>{children}</button>
+  )
+}
+
+const Input = ({ style = {}, ...props }) => (
+  <input {...props} style={{
+    width: '100%', background: C.surfaceHigh, border: `1px solid ${C.border}`,
+    borderRadius: 9, padding: '10px 14px', color: C.textPrimary, fontSize: 13,
+    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box', ...style
+  }} onFocus={e => e.target.style.borderColor = C.accent} onBlur={e => e.target.style.borderColor = C.border} />
+)
+
+const Select = ({ style = {}, children, ...props }) => (
+  <select {...props} style={{
+    width: '100%', background: C.surfaceHigh, border: `1px solid ${C.border}`,
+    borderRadius: 9, padding: '10px 14px', color: C.textPrimary, fontSize: 13,
+    outline: 'none', cursor: 'pointer', boxSizing: 'border-box', ...style
+  }}>{children}</select>
+)
+
+const Label = ({ children, style = {} }) => (
+  <label style={{ display: 'block', color: C.textSec, fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em', ...style }}>{children}</label>
+)
+
+const FieldGroup = ({ label, children, style = {} }) => (
+  <div style={{ marginBottom: '1.25rem', ...style }}>
+    <Label>{label}</Label>
+    {children}
+  </div>
+)
+
+const Divider = ({ style = {} }) => <div style={{ borderTop: `1px solid ${C.border}`, margin: '1.5rem 0', ...style }} />
+
+const Alert = ({ children, variant = 'success' }) => {
+  const v = { success: { bg: C.successBg, color: C.successText, border: C.success }, error: { bg: C.dangerBg, color: C.dangerText, border: C.danger }, warn: { bg: C.warnBg, color: C.warnText, border: C.warn } }
+  const s = v[variant] || v.success
+  return (
+    <div style={{ padding: '12px 16px', borderRadius: 10, border: `1px solid ${s.border}40`, background: s.bg, color: s.color, fontSize: 13, fontWeight: 500, marginBottom: '1.5rem' }}>
+      {children}
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const { token, logout } = useAuthStore()
   const [telemetry, setTelemetry] = useState(null)
@@ -35,7 +164,6 @@ export default function AdminDashboard() {
   const [tutorForm, setTutorForm] = useState({ nivel: 'SECUNDARIA', grado: '1', seccion: 'A', docente_id: '' })
   const [tutoresAsignados, setTutoresAsignados] = useState([])
   
-  // Intelligent Assignment States
   const [asignacionNivel, setAsignacionNivel] = useState('PRIMARIA')
   const [primariaTutores, setPrimariaTutores] = useState({})
   const [primariaEspeciales, setPrimariaEspeciales] = useState({ 'Inglés': [], 'Educación Física': [], 'Religión': [] })
@@ -52,18 +180,15 @@ export default function AdminDashboard() {
   const [msg, setMsg] = useState(null)
   
   const [horarioPreview, setHorarioPreview] = useState([])
-  const [previewMode, setPreviewMode] = useState('AULA') // 'AULA' or 'DOCENTE'
+  const [previewMode, setPreviewMode] = useState('AULA')
   const [horarioForm, setHorarioForm] = useState({ nivel: 'SECUNDARIA', grado: '1', seccion: 'A' })
   const [horarioDocenteId, setHorarioDocenteId] = useState('')
 
-  // Smart Match State
   const [isMatching, setIsMatching] = useState(false)
   const [matchResult, setMatchResult] = useState(null)
 
-  // Config State
   const [sysConfig, setSysConfig] = useState({ primaria: 500, secundaria: 700, cupos_aula_primaria: 30, cupos_aula_secundaria: 30 })
 
-  // Silabo Gen Masivo State
   const [silaboGenNivel, setSilaboGenNivel] = useState('PRIMARIA')
   const [silaboGenGrado, setSilaboGenGrado] = useState(1)
   const [silaboGenLoading, setSilaboGenLoading] = useState(false)
@@ -121,15 +246,12 @@ export default function AdminDashboard() {
   const handleToggleStatus = async (userId) => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users/${userId}/toggle_status`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
       setMsg({ text: data.message || data.detail, type: res.ok ? 'success' : 'error' })
       if(res.ok) fetchData()
-    } catch(err) {
-      setMsg({ text: 'Error de conexión', type: 'error' })
-    }
+    } catch(err) { setMsg({ text: 'Error de conexión', type: 'error' }) }
   }
 
   const handleCreateTutor = async (e) => {
@@ -150,31 +272,16 @@ export default function AdminDashboard() {
   const handleCrearCurso = async (e) => {
     e.preventDefault()
     setMsg(null)
-    if (gradosSeleccionados.length === 0) {
-      setMsg({ text: 'Debes seleccionar al menos un grado.', type: 'error' })
-      return
-    }
+    if (gradosSeleccionados.length === 0) { setMsg({ text: 'Debes seleccionar al menos un grado.', type: 'error' }); return }
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          nombre: cursoForm.nombre,
-          nivel: cursoForm.nivel,
-          grados: gradosSeleccionados
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ nombre: cursoForm.nombre, nivel: cursoForm.nivel, grados: gradosSeleccionados })
       })
       const data = await res.json()
       setMsg({ text: data.message || data.detail || 'Curso creado exitosamente', type: res.ok ? 'success' : 'error' })
-      if(res.ok) {
-        setShowCursoModal(false)
-        fetchData()
-        setCursoForm({ nombre: '', nivel: 'SECUNDARIA' })
-        setGradosSeleccionados([1,2,3,4,5])
-      }
-    } catch(err) {
-      setMsg({ text: 'Error de conexión', type: 'error' })
-    }
+      if(res.ok) { setShowCursoModal(false); fetchData(); setCursoForm({ nombre: '', nivel: 'SECUNDARIA' }); setGradosSeleccionados([1,2,3,4,5]) }
+    } catch(err) { setMsg({ text: 'Error de conexión', type: 'error' }) }
   }
 
   const enrolled = state?.enrolled_students || {}
@@ -184,11 +291,10 @@ export default function AdminDashboard() {
     if (!confirm(`Esto regenerará y reemplazará todos los horarios para ${targetNivel}. ¿Proceder?`)) return;
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/generar_horarios?nivel=${targetNivel}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
       })
       if (!res.ok) throw new Error()
-      setMsg({ text: `Horario académico de ${targetNivel} generado óptimamente.`, type: 'success' })
+      setMsg({ text: `Horario académico de ${targetNivel} generado correctamente.`, type: 'success' })
       fetchHorario()
     } catch {
       setMsg({ text: 'No se pudo generar el horario. Verifica si asignaste suficientes docentes.', type: 'error' })
@@ -200,36 +306,25 @@ export default function AdminDashboard() {
       let endpoint = previewMode === 'AULA' 
         ? `${import.meta.env.VITE_API_URL}/api/horarios/${horarioForm.nivel}/${horarioForm.grado}/${horarioForm.seccion}`
         : `${import.meta.env.VITE_API_URL}/api/admin/horarios/docente/${horarioDocenteId}`
-        
       if (previewMode === 'DOCENTE' && !horarioDocenteId) return setMsg({ text: 'Selecciona un docente', type: 'error' })
-
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setHorarioPreview(data)
-      }
+      const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) { const data = await res.json(); setHorarioPreview(data) }
     } catch (e) { console.error(e) }
   }
 
   const handleBiQuery = async () => {
     if(!biQuery.trim()) return;
-    setLoadingBi(true);
-    setBiResponse('');
+    setLoadingBi(true); setBiResponse('');
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/bi-query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ question: biQuery })
       });
       const data = await res.json();
       setBiResponse(data.response || "No se obtuvo respuesta.");
     } catch (e) {
       setBiResponse("Error al consultar el agente de base de datos.");
-    } finally {
-      setLoadingBi(false);
-    }
+    } finally { setLoadingBi(false); }
   }
 
   const [isAssigningPrimaria, setIsAssigningPrimaria] = useState(false)
@@ -237,14 +332,8 @@ export default function AdminDashboard() {
   const handleGuardarAsignacionesInteligentes = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos/asignacion_inteligente`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          nivel: asignacionNivel,
-          primaria_tutores: primariaTutores,
-          primaria_especialistas: primariaEspeciales,
-          secundaria_cursos: secundariaCursos
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ nivel: asignacionNivel, primaria_tutores: primariaTutores, primaria_especialistas: primariaEspeciales, secundaria_cursos: secundariaCursos })
       })
       const data = await res.json()
       setMsg({ text: data.message || 'Asignaciones guardadas correctamente', type: res.ok ? 'success' : 'error' })
@@ -256,907 +345,783 @@ export default function AdminDashboard() {
     setIsAssigningPrimaria(true)
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos/asignacion_primaria_ia`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
       if (data.tutores && Object.keys(data.tutores).length > 0) {
-        setPrimariaTutores(data.tutores)
-        setPrimariaEspeciales(data.especialistas)
-        setMsg({ text: 'Asignación automática cargada, ¡revisa y guarda!', type: 'success' })
-      } else {
-        setMsg({ text: 'No se pudo generar la asignación automática', type: 'error' })
-      }
-    } catch (e) {
-      setMsg({ text: 'Error contactando a la IA', type: 'error' })
-    } finally {
-      setIsAssigningPrimaria(false)
-    }
+        setPrimariaTutores(data.tutores); setPrimariaEspeciales(data.especialistas)
+        setMsg({ text: 'Asignación automática cargada. Revisa y guarda los cambios.', type: 'success' })
+      } else { setMsg({ text: 'No se pudo generar la asignación automática', type: 'error' }) }
+    } catch (e) { setMsg({ text: 'Error de conexión', type: 'error' }) }
+    finally { setIsAssigningPrimaria(false) }
   }
 
   const handleSaveConfig = async (e) => {
     e.preventDefault()
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 
-          primaria: parseFloat(sysConfig.primaria), 
-          secundaria: parseFloat(sysConfig.secundaria),
-          cupos_aula_primaria: parseInt(sysConfig.cupos_aula_primaria),
-          cupos_aula_secundaria: parseInt(sysConfig.cupos_aula_secundaria)
+          primaria: parseFloat(sysConfig.primaria), secundaria: parseFloat(sysConfig.secundaria),
+          cupos_aula_primaria: parseInt(sysConfig.cupos_aula_primaria), cupos_aula_secundaria: parseInt(sysConfig.cupos_aula_secundaria)
         })
       })
       const data = await res.json()
       setMsg({ text: data.message, type: res.ok ? 'success' : 'error' })
-    } catch (e) {
-      setMsg({ text: 'Error guardando config', type: 'error' })
-    }
+    } catch (e) { setMsg({ text: 'Error guardando configuración', type: 'error' }) }
   }
 
   const handleRunSmartMatch = async () => {
     const docentesSec = docentes.filter(d => d.nivel_asignado === 'SECUNDARIA')
-    if (docentesSec.length === 0) {
-      return alert("No hay docentes de secundaria registrados.");
-    }
-    
-    setIsMatching(true)
-    setMatchResult(null)
-    
+    if (docentesSec.length === 0) { return alert("No hay docentes de secundaria registrados."); }
+    setIsMatching(true); setMatchResult(null)
     const classProfiles = [
       { diff: "Indisciplina Alta", needs: ["Control de grupo", "Disciplina"] },
       { diff: "Aplicados, Retos", needs: ["Motivación académica", "Retos intelectuales"] },
       { diff: "Rezago Académico", needs: ["Paciencia", "Acompañamiento cercano"] },
       { diff: "Estándar", needs: ["Asignación automática", "Acompañamiento"] }
     ];
-
-    const secondaryClassrooms = [
-      "1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B", "5A", "5B"
-    ].map((c, idx) => {
+    const secondaryClassrooms = ["1A","1B","2A","2B","3A","3B","4A","4B","5A","5B"].map((c, idx) => {
       const p = classProfiles[idx % classProfiles.length];
-      return {
-        classroom_id: c + "-Secundaria",
-        difficulty_level: p.diff,
-        needs: p.needs
-      };
+      return { classroom_id: c + "-Secundaria", difficulty_level: p.diff, needs: p.needs };
     });
-
     const teacherProfiles = [
       { style: "Estricto, Disciplina", strengths: ["Liderazgo", "Control de clase"] },
       { style: "Dinámico, Motivación", strengths: ["Creatividad", "Inspiración"] },
       { style: "Analítico, Estructurado", strengths: ["Planificación", "Claridad"] },
       { style: "Paciente, Empático", strengths: ["Tutoría", "Escucha activa"] }
     ];
-
     const teachersList = docentesSec.map((d, idx) => {
       const p = teacherProfiles[idx % teacherProfiles.length];
-      return {
-        teacher_id: d.id,
-        name: d.username,
-        teaching_style: p.style,
-        strengths: p.strengths
-      };
+      return { teacher_id: d.id, name: d.username, teaching_style: p.style, strengths: p.strengths };
     });
-
-    const payload = {
-      classrooms: secondaryClassrooms,
-      teachers: teachersList
-    }
-    
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/smart-tutor-match`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ classrooms: secondaryClassrooms, teachers: teachersList })
       })
       if (!res.ok) throw new Error("Error en servidor")
       const data = await res.json()
       setMatchResult(data.matches)
-
-      // Guardar en la DB
       for (const match of data.matches) {
         const classStr = match.classroom_id.replace('-Secundaria', '')
-        const grado = parseInt(classStr[0])
-        const seccion = classStr[1]
-        
+        const grado = parseInt(classStr[0]); const seccion = classStr[1]
         await fetch(`${import.meta.env.VITE_API_URL}/api/admin/tutores`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            nivel: 'SECUNDARIA',
-            grado: grado,
-            seccion: seccion,
-            docente_id: match.teacher_id
-          })
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ nivel: 'SECUNDARIA', grado, seccion, docente_id: match.teacher_id })
         })
       }
-      fetchData()
-      alert("Tutores de Secundaria asignados y guardados exitosamente. ¡Sin repeticiones!")
-    } catch (err) {
-      alert("Hubo un error al ejecutar el Asignador IA.")
-    } finally {
-      setIsMatching(false)
-    }
+      fetchData(); alert("Tutores de Secundaria asignados exitosamente.")
+    } catch (err) { alert("Hubo un error al ejecutar el Asignador.") }
+    finally { setIsMatching(false) }
   }
 
   const handleMultiSelect = (state, setState, courseName, teacherId) => {
     const current = state[courseName] || []
-    if (current.includes(teacherId)) {
-      setState({...state, [courseName]: current.filter(id => id !== teacherId)})
-    } else {
-      setState({...state, [courseName]: [...current, teacherId]})
-    }
+    if (current.includes(teacherId)) { setState({...state, [courseName]: current.filter(id => id !== teacherId)}) }
+    else { setState({...state, [courseName]: [...current, teacherId]}) }
   }
 
   const docentesPrimaria = docentes.filter(d => d.nivel_asignado === 'PRIMARIA')
   const docentesSecundaria = docentes.filter(d => d.nivel_asignado === 'SECUNDARIA')
 
-  const TabButton = ({ id, label, icon }) => (
-    <button 
-      onClick={() => { setActiveTab(id); setMsg(null); }}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === id ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-blue-800/40' : 'text-slate-400 border border-transparent hover:text-slate-200 hover:bg-white/5'}`}
-    >
-      <div className={`p-2 rounded-lg ${activeTab === id ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-400'}`}>
-        {icon}
-      </div>
-      <span className="text-sm text-left">{label}</span>
-    </button>
-  )
+  // Sidebar nav items
+  const navSections = [
+    {
+      label: 'PRINCIPAL',
+      items: [
+        { id: 'alumnos',          label: 'Alumnos',           icon: <GraduationCap size={15} /> },
+        { id: 'personal',         label: 'Personal (RRHH)',    icon: <Users size={15} /> },
+        { id: 'asignacion_docente',label: 'Asignación Docente',icon: <UserPlus size={15} /> },
+        { id: 'academico',        label: 'Gestión Académica',  icon: <BookOpen size={15} /> },
+        { id: 'horarios_docentes',label: 'Horarios Docentes',  icon: <Clock size={15} /> },
+      ]
+    },
+    {
+      label: 'INTELIGENCIA',
+      items: [
+        { id: 'riesgo',       label: 'Riesgo Académico',   icon: <AlertTriangle size={15} /> },
+        { id: 'asignador_ia', label: 'Asignador de Aulas', icon: <Brain size={15} /> },
+        { id: 'bi_analytics', label: 'Análisis de Datos',  icon: <BarChart3 size={15} /> },
+        { id: 'ia',           label: 'Monitor de Recursos',icon: <BarChart3 size={15} /> },
+        { id: 'silabos_ia',   label: 'Gestor de Sílabos',  icon: <Bot size={15} /> },
+      ]
+    },
+    {
+      label: 'SISTEMA',
+      items: [
+        { id: 'cierre',        label: 'Fin de Año Escolar', icon: <PartyPopper size={15} /> },
+        { id: 'auditoria_caja',label: 'Auditoría de Cajas', icon: <DollarSign size={15} /> },
+        { id: 'configuracion', label: 'Configuración',      icon: <Settings size={15} /> },
+      ]
+    }
+  ]
+
+  const tabLabel = navSections.flatMap(s => s.items).find(i => i.id === activeTab)?.label || activeTab
+
+  // Schedule blocks for timetable
+  const bloques = [
+    { inicio: "08:00", fin: "08:45" }, { inicio: "08:45", fin: "09:30" }, { inicio: "09:30", fin: "10:15" },
+    { isRecreo: true, label: "RECREO", time: "10:15 – 10:45" },
+    { inicio: "10:45", fin: "11:30" }, { inicio: "11:30", fin: "12:15" }, { inicio: "12:15", fin: "13:00" },
+    { isRecreo: true, label: "RECREO", time: "13:00 – 13:15" },
+    { inicio: "13:15", fin: "14:00" },
+  ]
+  const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-hidden flex relative">
-      
-      {/* Sidebar */}
-      <aside className="w-[320px] flex-shrink-0 bg-slate-950 border-r border-white/10 flex flex-col z-20 relative">
-        <div className="p-6 border-b border-white/10 flex items-center gap-4 bg-slate-900">
-          <img src="/logo.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.textPrimary, fontFamily: "'Inter', system-ui, sans-serif", display: 'flex', overflow: 'hidden' }}>
+
+      {/* ── Sidebar ───────────────────────────────────────────────── */}
+      <aside style={{ width: 248, flexShrink: 0, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', zIndex: 20 }}>
+        {/* Logo */}
+        <div style={{ padding: '20px 20px 18px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/logo.png" alt="Logo" style={{ height: 36, width: 'auto', objectFit: 'contain', opacity: 0.9 }} />
           <div>
-            <h1 className="text-xl font-bold tracking-tight leading-tight">I.E.P.<br/>José María Arguedas</h1>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, lineHeight: 1.3 }}>I.E.P. José María</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textPrimary, lineHeight: 1.3 }}>Arguedas</div>
           </div>
         </div>
-        
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-3 mt-2">Principal</p>
-          <TabButton id="alumnos" label="Gestión de Alumnos" icon={<GraduationCap className="w-4 h-4" />} />
-          <TabButton id="personal" label="Personal (RRHH)" icon={<Users className="w-4 h-4" />} />
-          <TabButton id="asignacion_docente" label="Asignación Docente" icon={<UserPlus className="w-4 h-4" />} />
-          <TabButton id="academico" label="Gestión Académica" icon={<BookOpen className="w-4 h-4" />} />
-          <TabButton id="horarios_docentes" label="Horarios por Docente" icon={<Clock className="w-4 h-4" />} />
-          
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-3 mt-6">Inteligencia</p>
-          <TabButton id="riesgo" label="Riesgo Académico" icon={<AlertTriangle className="w-4 h-4" />} />
-          <TabButton id="asignador_ia" label="Asignador de Aulas" icon={<Brain className="w-4 h-4" />} />
-          <TabButton id="bi_analytics" label="Análisis de Datos" icon={<BarChart3 className="w-4 h-4" />} />
-          <TabButton id="ia" label="Monitor de Recursos" icon={<BarChart3 className="w-4 h-4" />} />
-          <TabButton id="silabos_ia" label="Gestor de Sílabos" icon={<Bot className="w-4 h-4" />} />
-          
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-3 mt-6">Sistema</p>
-          <TabButton id="cierre" label="Fin de Año Escolar" icon={<PartyPopper className="w-4 h-4" />} />
-          <TabButton id="auditoria_caja" label="Auditoría de Cajas" icon={<DollarSign className="w-4 h-4" />} />
-          <TabButton id="configuracion" label="Configuración" icon={<Settings className="w-4 h-4" />} />
+
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+          {navSections.map(section => (
+            <div key={section.label} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: '0.08em', padding: '10px 10px 6px' }}>
+                {section.label}
+              </div>
+              {section.items.map(item => {
+                const isActive = activeTab === item.id
+                return (
+                  <button key={item.id} onClick={() => { setActiveTab(item.id); setMsg(null) }} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 10px', borderRadius: 8, marginBottom: 2,
+                    background: isActive ? C.accentMuted : 'transparent',
+                    border: 'none', cursor: 'pointer', textAlign: 'left',
+                    color: isActive ? C.accent : C.textSec,
+                    fontWeight: isActive ? 600 : 400,
+                    fontSize: 13,
+                    transition: 'all 0.12s',
+                    borderLeft: isActive ? `3px solid ${C.accent}` : '3px solid transparent',
+                    paddingLeft: isActive ? 7 : 10,
+                  }}>
+                    <span style={{ opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </nav>
-        
-        <div className="p-4 border-t border-white/10 bg-black/20">
-          <button onClick={logout} className="w-full py-3 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 rounded-xl transition-all font-medium flex items-center justify-center">
-            <LogOut className="w-4 h-4 mr-2 inline" /> Cerrar Sesión
+
+        {/* Logout */}
+        <div style={{ padding: '12px 10px', borderTop: `1px solid ${C.border}` }}>
+          <button onClick={logout} style={{
+            width: '100%', padding: '10px 14px', borderRadius: 9, border: `1px solid ${C.border}`,
+            background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 13,
+            display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center',
+            transition: 'all 0.15s', fontWeight: 500,
+          }}>
+            <LogOut size={14} /> Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 h-screen overflow-hidden flex flex-col relative z-10 w-full">
+      {/* ── Main ─────────────────────────────────────────────────── */}
+      <main style={{ flex: 1, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <header className="p-6 border-b border-white/10 bg-white/5 backdrop-blur-md flex justify-between items-center shadow-sm">
+        <header style={{
+          padding: '0 32px', height: 60, borderBottom: `1px solid ${C.border}`,
+          background: C.sidebar, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
+        }}>
           <div>
-             <p className="text-sm text-blue-300 font-medium tracking-wide uppercase">I.E.P. José María Arguedas</p>
-             <h2 className="text-2xl font-bold mt-1 capitalize text-white">
-                {activeTab.replace('_', ' ')}
-             </h2>
+            <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Panel de Administración
+            </span>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.textPrimary }}>{tabLabel}</h2>
           </div>
-          <div className="flex gap-3">
-            <button onClick={fetchData} className="px-5 py-2.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all flex items-center shadow-sm">
-              <RefreshCw className="w-4 h-4 mr-2" /> Refrescar Datos
-            </button>
-          </div>
+          <button onClick={fetchData} style={{
+            padding: '7px 14px', background: 'transparent', border: `1px solid ${C.border}`,
+            borderRadius: 8, color: C.textSec, cursor: 'pointer', fontSize: 12,
+            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', fontWeight: 500,
+          }}>
+            <RefreshCw size={13} /> Refrescar
+          </button>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar w-full">
-          {msg && (
-            <div className={`mb-8 p-4 rounded-xl border font-medium flex items-center gap-3 animate-fade-in-up ${msg.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-              {msg.text}
-            </div>
-          )}
-          
-          <div className="max-w-[1600px] mx-auto w-full">
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', boxSizing: 'border-box' }}>
+          {msg && <Alert variant={msg.type === 'success' ? 'success' : 'error'}>{msg.text}</Alert>}
+
+          <div style={{ maxWidth: 1400 }}>
+
+            {/* ── ALUMNOS ──────────────────────────────────────── */}
             {activeTab === 'alumnos' && (
-              <div className="space-y-8 animate-fade-in-up">
-                <div>
-                  <h2 className="text-xl font-bold text-green-400 mb-4 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Alumnos Matriculados Oficialmente</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Object.keys(enrolled).length === 0 ? <p className="text-slate-500 italic">No hay alumnos matriculados.</p> :
-                      Object.entries(enrolled).map(([id, data]) => (
-                        <div key={id} className="bg-slate-900/60 backdrop-blur-md border border-green-500/20 p-4 rounded-xl border-l-4 border-l-green-500">
-                          <h3 className="font-bold">{data.nombres}</h3>
-                          <p className="text-sm text-slate-400">DNI: {data.dni}</p>
-                          <p className="text-sm text-slate-400">Grado: {data.grado}° {data.nivel}</p>
-                          <div className="mt-2 text-xs bg-green-500/20 text-green-300 w-fit px-2 py-1 rounded">EST-{id.substring(0,6)}</div>
-                        </div>
-                      ))
-                    }
-                  </div>
+              <div>
+                <SectionTitle>Alumnos Matriculados</SectionTitle>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 32 }}>
+                  {Object.keys(enrolled).length === 0
+                    ? <p style={{ color: C.textMuted, fontStyle: 'italic', fontSize: 13 }}>No hay alumnos matriculados.</p>
+                    : Object.entries(enrolled).map(([id, data]) => (
+                      <Card key={id} style={{ borderLeft: `3px solid ${C.success}` }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, marginBottom: 4 }}>{data.nombres}</div>
+                        <div style={{ fontSize: 12, color: C.textSec }}>DNI: {data.dni}</div>
+                        <div style={{ fontSize: 12, color: C.textSec }}>Grado: {data.grado}° {data.nivel}</div>
+                        <div style={{ marginTop: 10 }}><Badge label={`EST-${id.substring(0,6)}`} variant="success" /></div>
+                      </Card>
+                    ))
+                  }
                 </div>
 
-                <div className="pt-8 border-t border-white/10">
-                  <h2 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Postulaciones Rechazadas</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Object.keys(rejected).length === 0 ? <p className="text-slate-500 italic">No hay expedientes rechazados.</p> :
-                      Object.entries(rejected).map(([id, data]) => (
-                        <div key={id} className="bg-slate-900/60 backdrop-blur-md border border-red-500/20 p-4 rounded-xl border-l-4 border-l-red-500">
-                          <h3 className="font-bold">{data.nombres}</h3>
-                          <p className="text-sm text-slate-400">DNI: {data.dni}</p>
-                          <p className="text-sm mt-3 text-red-300 bg-red-500/10 p-2 rounded">Motivo: {data.motivo || "No apto según evaluación"}</p>
+                <Divider />
+                <SectionTitle>Postulaciones Rechazadas</SectionTitle>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                  {Object.keys(rejected).length === 0
+                    ? <p style={{ color: C.textMuted, fontStyle: 'italic', fontSize: 13 }}>No hay expedientes rechazados.</p>
+                    : Object.entries(rejected).map(([id, data]) => (
+                      <Card key={id} style={{ borderLeft: `3px solid ${C.danger}` }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.textPrimary, marginBottom: 4 }}>{data.nombres}</div>
+                        <div style={{ fontSize: 12, color: C.textSec }}>DNI: {data.dni}</div>
+                        <div style={{ fontSize: 12, color: C.dangerText, marginTop: 8, padding: '8px 10px', background: C.dangerBg, borderRadius: 7 }}>
+                          Motivo: {data.motivo || "No apto según evaluación"}
                         </div>
-                      ))
-                    }
-                  </div>
+                      </Card>
+                    ))
+                  }
                 </div>
               </div>
             )}
 
+            {/* ── AUDITORÍA CAJA ────────────────────────────────── */}
             {activeTab === 'auditoria_caja' && (
-              <div className="animate-fade-in-up">
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-sm">
-                  <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><DollarSign className="w-6 h-6 text-yellow-500" /> Auditoría de Cajas</h2>
-                  <p className="text-slate-400 mb-8">El Sistema revisa automáticamente la cuadratura diaria de la Secretaría. Las anomalías se marcan en rojo.</p>
-
-                  <div className="space-y-4">
-                    {cajasHistorial.length === 0 ? <p className="text-slate-500 italic">No hay registros de cajas cerradas aún.</p> :
-                      cajasHistorial.map(c => (
-                        <div key={c.id} className={`p-6 rounded-2xl border ${c.estado === 'Abierta' ? 'bg-blue-900/10 border-blue-500/30' : (c.diferencia < 0 ? 'bg-red-900/20 border-red-500/50' : 'bg-green-900/10 border-green-500/30')}`}>
-                          <div className="flex justify-between items-center mb-4">
-                            <span className="font-bold text-lg">Caja: {c.fecha}</span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${c.estado === 'Abierta' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}>{c.estado.toUpperCase()}</span>
+              <div>
+                <SectionTitle sub="El sistema verifica la cuadratura diaria. Las anomalías se indican en rojo.">
+                  Auditoría de Cajas
+                </SectionTitle>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {cajasHistorial.length === 0
+                    ? <p style={{ color: C.textMuted, fontStyle: 'italic', fontSize: 13 }}>No hay registros de cajas cerradas aún.</p>
+                    : cajasHistorial.map(c => {
+                      const isOpen = c.estado === 'Abierta'
+                      const hasDiff = c.diferencia < 0
+                      const borderColor = isOpen ? C.accent : hasDiff ? C.dangerText : C.successText
+                      return (
+                        <Card key={c.id} style={{ borderLeft: `3px solid ${borderColor}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <span style={{ fontWeight: 700, fontSize: 15 }}>Caja: {c.fecha}</span>
+                            <Badge label={c.estado.toUpperCase()} variant={isOpen ? 'accent' : 'neutral'} />
                           </div>
-                          
-                          <div className="grid grid-cols-4 gap-4 mb-4 text-sm bg-slate-900/60 backdrop-blur-md p-4 rounded-xl">
-                            <div><span className="block text-slate-500 text-xs">Apertura</span><span className="font-mono">S/ {c.monto_apertura.toFixed(2)}</span></div>
-                            <div><span className="block text-slate-500 text-xs">Recaudado (ERP)</span><span className="font-mono">S/ {c.recaudado_sistema.toFixed(2)}</span></div>
-                            <div><span className="block text-slate-500 text-xs">Cierre Físico</span><span className="font-mono">{c.monto_cierre ? `S/ ${c.monto_cierre.toFixed(2)}` : 'N/A'}</span></div>
-                            <div>
-                              <span className="block text-slate-500 text-xs">Diferencia</span>
-                              <span className={`font-mono font-bold ${c.diferencia < 0 ? 'text-red-400' : (c.diferencia > 0 ? 'text-amber-400' : 'text-green-400')}`}>
-                                {c.diferencia !== null ? `S/ ${c.diferencia.toFixed(2)}` : 'N/A'}
-                              </span>
-                            </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                            {[
+                              { label: 'Apertura', val: `S/ ${c.monto_apertura.toFixed(2)}` },
+                              { label: 'Recaudado (ERP)', val: `S/ ${c.recaudado_sistema.toFixed(2)}` },
+                              { label: 'Cierre Físico', val: c.monto_cierre ? `S/ ${c.monto_cierre.toFixed(2)}` : 'N/A' },
+                              { label: 'Diferencia', val: c.diferencia !== null ? `S/ ${c.diferencia.toFixed(2)}` : 'N/A', color: c.diferencia < 0 ? C.dangerText : c.diferencia > 0 ? C.warnText : C.successText },
+                            ].map(f => (
+                              <div key={f.label} style={{ background: C.surfaceHigh, padding: '10px 12px', borderRadius: 8 }}>
+                                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{f.label}</div>
+                                <div style={{ fontFamily: 'monospace', fontWeight: 600, color: f.color || C.textPrimary, fontSize: 13 }}>{f.val}</div>
+                              </div>
+                            ))}
                           </div>
-
                           {c.estado === 'Cerrada' && c.reporte_ia && (
-                            <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl mt-2 relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
-                              <h4 className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-2 flex items-center gap-2">Reporte del Sistema</h4>
-                              <p className="text-sm text-slate-300 italic">"{c.reporte_ia}"</p>
+                            <div style={{ marginTop: 12, padding: '10px 14px', background: C.surfaceHigh, borderRadius: 8, borderLeft: `3px solid ${C.warnText}` }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: C.warnText, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reporte del Sistema</div>
+                              <p style={{ fontSize: 13, color: C.textSec, fontStyle: 'italic', margin: 0 }}>"{c.reporte_ia}"</p>
                             </div>
                           )}
-                        </div>
-                      ))
-                    }
-                  </div>
+                        </Card>
+                      )
+                    })
+                  }
                 </div>
               </div>
             )}
 
+            {/* ── CONFIGURACIÓN ─────────────────────────────────── */}
             {activeTab === 'configuracion' && (
-              <div className="animate-fade-in-up max-w-2xl mx-auto">
-                <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><Settings className="w-6 h-6 text-slate-400" /> Configuración General</h2>
-                <p className="text-slate-400 mb-8">Administra los parámetros globales del ERP Escolar.</p>
-
-                <form onSubmit={handleSaveConfig} className="bg-white/5 border border-white/10 p-8 rounded-3xl shadow-xl space-y-6">
-                  <h3 className="font-bold text-lg text-emerald-400 border-b border-white/10 pb-2 mb-4">Costos de Matrícula</h3>
-                  
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Primaria (S/)</label>
-                      <input 
-                        type="number" step="0.1" required
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white font-mono" 
-                        value={sysConfig.primaria} 
-                        onChange={e => setSysConfig({...sysConfig, primaria: e.target.value})} 
-                      />
+              <div style={{ maxWidth: 560 }}>
+                <SectionTitle sub="Administra los parámetros globales del sistema.">Configuración General</SectionTitle>
+                <form onSubmit={handleSaveConfig}>
+                  <Card>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costos de Matrícula</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                      <FieldGroup label="Primaria (S/)">
+                        <Input type="number" step="0.1" required value={sysConfig.primaria} onChange={e => setSysConfig({...sysConfig, primaria: e.target.value})} />
+                      </FieldGroup>
+                      <FieldGroup label="Secundaria (S/)">
+                        <Input type="number" step="0.1" required value={sysConfig.secundaria} onChange={e => setSysConfig({...sysConfig, secundaria: e.target.value})} />
+                      </FieldGroup>
                     </div>
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Secundaria (S/)</label>
-                      <input 
-                        type="number" step="0.1" required
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white font-mono" 
-                        value={sysConfig.secundaria} 
-                        onChange={e => setSysConfig({...sysConfig, secundaria: e.target.value})} 
-                      />
+                    <Divider style={{ margin: '0 0 20px' }} />
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cupos Máximos por Aula</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                      <FieldGroup label="Primaria (max/sección)">
+                        <Input type="number" step="1" required value={sysConfig.cupos_aula_primaria || 30} onChange={e => setSysConfig({...sysConfig, cupos_aula_primaria: e.target.value})} />
+                      </FieldGroup>
+                      <FieldGroup label="Secundaria (max/sección)">
+                        <Input type="number" step="1" required value={sysConfig.cupos_aula_secundaria || 30} onChange={e => setSysConfig({...sysConfig, cupos_aula_secundaria: e.target.value})} />
+                      </FieldGroup>
                     </div>
-                  </div>
-
-                  <h3 className="font-bold text-lg text-emerald-400 border-b border-white/10 pb-2 mb-4 mt-6">Cupos Máximos (Por Aula/Sección)</h3>
-                  
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Primaria (Max por sección)</label>
-                      <input 
-                        type="number" step="1" required
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white font-mono" 
-                        value={sysConfig.cupos_aula_primaria || 30} 
-                        onChange={e => setSysConfig({...sysConfig, cupos_aula_primaria: e.target.value})} 
-                      />
+                    <div style={{ padding: '10px 14px', background: C.surfaceHigh, borderRadius: 8, fontSize: 12, color: C.textSec, marginBottom: 20 }}>
+                      Los precios se actualizan en tiempo real en la pasarela de Admisiones.
                     </div>
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Secundaria (Max por sección)</label>
-                      <input 
-                        type="number" step="1" required
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white font-mono" 
-                        value={sysConfig.cupos_aula_secundaria || 30} 
-                        onChange={e => setSysConfig({...sysConfig, cupos_aula_secundaria: e.target.value})} 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-slate-900 border border-white/10 p-4 rounded-xl text-sm text-slate-300 mt-4">
-                    <strong>Nota:</strong> Estos precios se actualizarán en tiempo real en la pasarela de Admisiones y el Sistema adaptará sus respuestas al instante.
-                  </div>
-
-                  <button type="submit" className="w-full py-4 mt-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl font-bold transition-all">
-                    Guardar Configuración Global
-                  </button>
+                    <Btn type="submit" variant="primary" style={{ width: '100%', justifyContent: 'center' }}>
+                      Guardar Configuración
+                    </Btn>
+                  </Card>
                 </form>
               </div>
             )}
 
+            {/* ── PERSONAL ──────────────────────────────────────── */}
             {activeTab === 'personal' && (
-              <div className="animate-fade-in-up max-w-2xl mx-auto">
-                <h2 className="text-2xl font-bold mb-2">Registro de Personal</h2>
-                <p className="text-slate-400 mb-8">Crea cuentas de acceso seguro para el cuerpo docente y psicológico.</p>
-                
-                <form onSubmit={handleCreateUser} className="bg-slate-900/40 backdrop-blur-md border border-white/10 p-8 rounded-2xl space-y-5">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Nombre de Usuario (Login)</label>
-                    <input type="text" required className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white" value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} placeholder="Ej: jmendoza" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Contraseña de Acceso</label>
-                    <input type="password" required className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder="••••••••" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Rol en el Sistema</label>
-                    <select className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white" value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}>
-                      <option value="DOCENTE">Docente (Acceso a Notas)</option>
-                      <option value="PSICOLOGO">Psicólogo (Evaluación Conductual)</option>
-                      <option value="SECRETARIO">Secretario (Caja y Atención)</option>
-                    </select>
-                  </div>
-                  
-                  {userForm.role === 'DOCENTE' && (
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Nivel Asignado (Solo Docentes)</label>
-                      <select className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white" value={userForm.nivel_asignado} onChange={e => setUserForm({...userForm, nivel_asignado: e.target.value})}>
-                        <option value="PRIMARIA">Primaria (Polidocencia)</option>
-                        <option value="SECUNDARIA">Secundaria (Especializado)</option>
-                      </select>
-                    </div>
-                  )}
+              <div style={{ maxWidth: 640 }}>
+                <SectionTitle sub="Crea cuentas de acceso para el cuerpo docente y psicológico.">Registro de Personal</SectionTitle>
+                <Card style={{ marginBottom: 24 }}>
+                  <form onSubmit={handleCreateUser}>
+                    <FieldGroup label="Nombre de Usuario (Login)">
+                      <Input type="text" required value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} placeholder="Ej: jmendoza" />
+                    </FieldGroup>
+                    <FieldGroup label="Contraseña">
+                      <Input type="password" required value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder="••••••••" />
+                    </FieldGroup>
+                    <FieldGroup label="Rol en el Sistema">
+                      <Select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}>
+                        <option value="DOCENTE">Docente (Notas)</option>
+                        <option value="PSICOLOGO">Psicólogo (Evaluación Conductual)</option>
+                        <option value="SECRETARIO">Secretario (Caja y Atención)</option>
+                      </Select>
+                    </FieldGroup>
+                    {userForm.role === 'DOCENTE' && (
+                      <FieldGroup label="Nivel Asignado">
+                        <Select value={userForm.nivel_asignado} onChange={e => setUserForm({...userForm, nivel_asignado: e.target.value})}>
+                          <option value="PRIMARIA">Primaria (Polidocente)</option>
+                          <option value="SECUNDARIA">Secundaria (Especializado)</option>
+                        </Select>
+                      </FieldGroup>
+                    )}
+                    <Btn type="submit" variant="primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
+                      Crear Cuenta Institucional
+                    </Btn>
+                  </form>
+                </Card>
 
-                  <button type="submit" className="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-blue-800/40">
-                    Crear Cuenta Institucional
-                  </button>
-                </form>
-
-                <div className="mt-12 bg-white/5 border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-xl font-bold mb-4">Gestión de Usuarios</h3>
-                  {users.length === 0 ? <p className="text-slate-500">No hay usuarios registrados.</p> : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left text-slate-300">
-                        <thead className="text-xs text-slate-400 uppercase bg-slate-800/50">
-                          <tr>
-                            <th className="px-4 py-3 rounded-tl-lg">Usuario</th>
-                            <th className="px-4 py-3">Rol</th>
-                            <th className="px-4 py-3">Nivel</th>
-                            <th className="px-4 py-3">Estado</th>
-                            <th className="px-4 py-3 rounded-tr-lg">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {users.map(u => (
-                            <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                              <td className="px-4 py-3 font-bold text-white">{u.username}</td>
-                              <td className="px-4 py-3">{u.role}</td>
-                              <td className="px-4 py-3">{u.nivel_asignado || '-'}</td>
-                              <td className="px-4 py-3">
-                                {u.is_active ? 
-                                  <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-lg text-xs font-bold">Activo</span> : 
-                                  <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold">Suspendido</span>
-                                }
-                              </td>
-                              <td className="px-4 py-3">
-                                <button 
-                                  onClick={() => handleToggleStatus(u.id)}
-                                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${u.is_active ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white'}`}
-                                >
-                                  {u.is_active ? 'Suspender' : 'Activar'}
-                                </button>
-                              </td>
+                <SectionTitle>Usuarios del Sistema</SectionTitle>
+                <Card noPad>
+                  {users.length === 0
+                    ? <p style={{ padding: 20, color: C.textMuted, fontSize: 13 }}>No hay usuarios registrados.</p>
+                    : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                              {['Usuario', 'Rol', 'Nivel', 'Estado', 'Acción'].map(h => (
+                                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                              ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+                          </thead>
+                          <tbody>
+                            {users.map(u => (
+                              <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                                <td style={{ padding: '12px 16px', fontWeight: 600, color: C.textPrimary }}>{u.username}</td>
+                                <td style={{ padding: '12px 16px', color: C.textSec }}>{u.role}</td>
+                                <td style={{ padding: '12px 16px', color: C.textSec }}>{u.nivel_asignado || '—'}</td>
+                                <td style={{ padding: '12px 16px' }}>
+                                  <Badge label={u.is_active ? 'Activo' : 'Suspendido'} variant={u.is_active ? 'success' : 'danger'} />
+                                </td>
+                                <td style={{ padding: '12px 16px' }}>
+                                  <Btn size="sm" variant={u.is_active ? 'danger' : 'success'} onClick={() => handleToggleStatus(u.id)}>
+                                    {u.is_active ? 'Suspender' : 'Activar'}
+                                  </Btn>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  }
+                </Card>
               </div>
             )}
 
+            {/* ── ACADÉMICO ─────────────────────────────────────── */}
             {activeTab === 'academico' && (
               <ErrorBoundary>
-                <div className="animate-fade-in-up flex flex-col gap-10 max-w-4xl mx-auto w-full">
-
-                
-                <div>
-                  <div className="bg-white/5 border border-amber-500/30 p-8 rounded-3xl shadow-xl mb-8">
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <button onClick={() => handleGenerarHorarios('PRIMARIA')} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-500 hover:to-blue-500 rounded-xl font-bold transition-all shadow-blue-800/40">
+                <div style={{ maxWidth: 900 }}>
+                  {/* Horarios */}
+                  <SectionTitle sub="Genera la grilla horaria semanal para cada sección.">Gestión de Horarios</SectionTitle>
+                  <Card style={{ marginBottom: 28 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                      <Btn variant="muted" onClick={() => handleGenerarHorarios('PRIMARIA')} style={{ width: '100%', justifyContent: 'center' }}>
                         Generar Horario Primaria
-                      </button>
-                      <button onClick={() => handleGenerarHorarios('SECUNDARIA')} className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                      </Btn>
+                      <Btn variant="primary" onClick={() => handleGenerarHorarios('SECUNDARIA')} style={{ width: '100%', justifyContent: 'center' }}>
                         Generar Horario Secundaria
-                      </button>
+                      </Btn>
                     </div>
-                    
-                    <div className="border-t border-white/10 pt-6">
-                      <h3 className="font-bold text-slate-300 mb-4">Previsualizar Horario (Por Aula)</h3>
-                      
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        <select className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" value={horarioForm.nivel} onChange={e => {setHorarioForm({...horarioForm, nivel: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([])}}>
-                          <option value="PRIMARIA">Primaria</option><option value="SECUNDARIA">Secundaria</option>
-                        </select>
-                        <select className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" value={horarioForm.grado} onChange={e => {setHorarioForm({...horarioForm, grado: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([])}}>
-                          {(horarioForm.nivel === 'PRIMARIA' ? [1,2,3,4,5,6] : [1,2,3,4,5]).map(g => <option key={g} value={g}>{g}°</option>)}
-                        </select>
-                        <select className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white" value={horarioForm.seccion} onChange={e => {setHorarioForm({...horarioForm, seccion: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([])}}>
-                          <option value="A">A</option><option value="B">B</option>
-                        </select>
+
+                    <Divider />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Previsualizar por Aula</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, marginBottom: 12 }}>
+                      <Select value={horarioForm.nivel} onChange={e => { setHorarioForm({...horarioForm, nivel: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([]) }}>
+                        <option value="PRIMARIA">Primaria</option>
+                        <option value="SECUNDARIA">Secundaria</option>
+                      </Select>
+                      <Select value={horarioForm.grado} onChange={e => { setHorarioForm({...horarioForm, grado: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([]) }}>
+                        {(horarioForm.nivel === 'PRIMARIA' ? [1,2,3,4,5,6] : [1,2,3,4,5]).map(g => <option key={g} value={g}>{g}°</option>)}
+                      </Select>
+                      <Select value={horarioForm.seccion} onChange={e => { setHorarioForm({...horarioForm, seccion: e.target.value}); setPreviewMode('AULA'); setHorarioPreview([]) }}>
+                        <option value="A">A</option><option value="B">B</option>
+                      </Select>
+                      <Btn variant="ghost" onClick={fetchHorario}>Ver</Btn>
+                    </div>
+
+                    {horarioPreview.length > 0 ? (
+                      <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}`, marginTop: 8 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 580 }}>
+                          <thead>
+                            <tr style={{ background: C.surfaceHigh }}>
+                              <th style={{ padding: '10px 12px', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, width: 70, textAlign: 'center', fontWeight: 600 }}>Hora</th>
+                              {dias.map(d => <th key={d} style={{ padding: '10px 8px', borderBottom: `1px solid ${C.border}`, color: C.textSec, fontWeight: 600, textAlign: 'center', fontSize: 11 }}>{d}</th>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bloques.map((bloque, idx) => {
+                              if (bloque.isRecreo) return (
+                                <tr key={`r-${idx}`} style={{ background: C.surfaceHigh }}>
+                                  <td style={{ padding: '6px 8px', borderRight: `1px solid ${C.border}`, color: C.textMuted, fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>{bloque.time}</td>
+                                  <td colSpan="5" style={{ padding: '6px', textAlign: 'center', color: C.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.3em' }}>{bloque.label}</td>
+                                </tr>
+                              )
+                              return (
+                                <tr key={bloque.inicio} style={{ borderBottom: `1px solid ${C.border}` }}>
+                                  <td style={{ padding: '8px', borderRight: `1px solid ${C.border}`, color: C.textMuted, fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>
+                                    {bloque.inicio}<br/>—<br/>{bloque.fin}
+                                  </td>
+                                  {dias.map(dia => {
+                                    const clase = horarioPreview.find(h => h.dia === dia && h.hora_inicio === bloque.inicio)
+                                    return (
+                                      <td key={dia} style={{ padding: '6px', borderRight: `1px solid ${C.border}80`, verticalAlign: 'top' }}>
+                                        {clase
+                                          ? <div style={{ background: C.accentMuted, border: `1px solid ${C.accent}25`, borderRadius: 6, padding: '6px 8px', minHeight: 42 }}>
+                                              <div style={{ fontWeight: 600, color: C.textPrimary, fontSize: 11, marginBottom: 2 }}>{clase.curso}</div>
+                                              <div style={{ color: C.accent, fontSize: 10 }}>{previewMode === 'AULA' ? (clase.docente ? clase.docente.split(' ')[0] : 'Sin Asignar') : clase.aula}</div>
+                                            </div>
+                                          : <div style={{ minHeight: 42, border: `1px dashed ${C.border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <span style={{ fontSize: 10, color: C.textMuted }}>—</span>
+                                            </div>
+                                        }
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                      
-                      <button onClick={fetchHorario} className="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold text-slate-300 mb-4">Ver Grilla</button>
-                      
-                      {horarioPreview.length > 0 ? (
-                        <div className="overflow-x-auto mt-6 custom-scrollbar bg-black/40 rounded-xl border border-white/10">
-                          <table className="w-full text-left border-collapse min-w-[600px]">
-                            <thead>
-                              <tr className="bg-amber-900/20 text-amber-300 text-xs uppercase tracking-wider">
-                                <th className="p-3 border-b border-r border-white/10 font-bold text-center w-24">Hora</th>
-                                {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].map(dia => (
-                                  <th key={dia} className="p-3 border-b border-white/10 font-bold text-center w-1/5">{dia}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="text-xs">
-                              {[
-                                { inicio: "08:00", fin: "08:45" },
-                                { inicio: "08:45", fin: "09:30" },
-                                { inicio: "09:30", fin: "10:15" },
-                                { isRecreo: true, label: "RECREO", time: "10:15 - 10:45" },
-                                { inicio: "10:45", fin: "11:30" },
-                                { inicio: "11:30", fin: "12:15" },
-                                { inicio: "12:15", fin: "13:00" },
-                                { isRecreo: true, label: "RECREO", time: "13:00 - 13:15" },
-                                { inicio: "13:15", fin: "14:00" },
-                              ].map((bloque, idx) => {
-                                if (bloque.isRecreo) {
-                                  return (
-                                    <tr key={`recreo-${idx}`} className="bg-white/5 border-b border-white/10">
-                                      <td className="p-2 border-r border-white/10 text-center text-slate-500 font-mono text-[10px]">{bloque.time}</td>
-                                      <td colSpan="5" className="p-2 text-center text-amber-500/50 font-bold tracking-[0.5em]">{bloque.label}</td>
-                                    </tr>
-                                  )
-                                }
-                                return (
-                                  <tr key={bloque.inicio} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="p-2 border-r border-white/10 text-center text-slate-400 font-mono text-[10px]">
-                                      {bloque.inicio}<br/>|<br/>{bloque.fin}
-                                    </td>
-                                    {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].map(dia => {
-                                      const clase = horarioPreview.find(h => h.dia === dia && h.hora_inicio === bloque.inicio)
-                                      return (
-                                        <td key={`${dia}-${bloque.inicio}`} className="p-2 border-r border-white/5 last:border-0 align-top">
-                                          {clase ? (
-                                            <div className="h-full bg-blue-900/20 border border-blue-500/20 rounded p-2 flex flex-col justify-between hover:border-blue-400/50 transition-colors">
-                                              <span className="font-bold text-white leading-tight mb-1">{clase.curso}</span>
-                                              <span className="text-[10px] text-blue-300 truncate">
-                                                {previewMode === 'AULA' ? `${clase.docente ? clase.docente.split(' ')[0] : 'Sin Asignar'}` : `${clase.aula}`}
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <div className="h-full min-h-[48px] rounded border border-dashed border-white/10 flex items-center justify-center">
-                                              <span className="text-[10px] text-slate-600">Libre</span>
-                                            </div>
-                                          )}
-                                        </td>
-                                      )
-                                    })}
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <p className="text-slate-500 text-xs italic text-center">Genera y consulta un horario para previsualizarlo aquí.</p>
-                      )}
-                    </div>
+                    ) : (
+                      <p style={{ color: C.textMuted, fontSize: 12, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+                        Selecciona nivel, grado y sección, luego haz clic en "Ver".
+                      </p>
+                    )}
+                  </Card>
+
+                  {/* Cursos */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <SectionTitle>Cursos Aperturados</SectionTitle>
+                    <Btn variant="primary" size="sm" onClick={() => setShowCursoModal(true)}>+ Aperturar Curso</Btn>
                   </div>
 
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Cursos Aperturados
-                    </h2>
-                    <button onClick={() => setShowCursoModal(true)} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold text-sm transition-all shadow-sm">
-                      + Aperturar Curso
-                    </button>
-                  </div>
-                  <div className="w-full">
-                    {(() => {
-                      if (cursos.length === 0) return <p className="text-slate-400 italic text-center p-12 bg-white/5 rounded-3xl border border-white/10 shadow-inner">No hay cursos registrados. Haz clic en "+ Aperturar Curso" para comenzar.</p>;
-                      
-                      const grouped = cursos.reduce((acc, c) => {
-                        const key = `${c.nivel} - ${c.grado}° "${c.seccion}"`;
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(c);
-                        return acc;
-                      }, {});
-
-                      // Sort keys so PRIMARIA appears before SECUNDARIA and lower grades first
-                      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-                        const lvlA = a.includes('PRIMARIA') ? 1 : 2;
-                        const lvlB = b.includes('PRIMARIA') ? 1 : 2;
-                        if (lvlA !== lvlB) return lvlA - lvlB;
-                        return a.localeCompare(b);
-                      });
-
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                          {sortedKeys.map((groupKey) => (
-                            <div key={groupKey} className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl hover:border-yellow-500/30 transition-all group flex flex-col h-full">
-                              <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 p-4 border-b border-white/10 flex items-center justify-between">
-                                <h3 className="font-bold text-white text-lg flex items-center gap-2">
-                                  <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></span>
-                                  {groupKey}
-                                </h3>
-                                <span className="text-xs bg-black/30 px-3 py-1 rounded-lg text-yellow-400 font-bold border border-yellow-500/20 shadow-inner">
-                                  {grouped[groupKey].length} Cursos
-                                </span>
-                              </div>
-                              <div className="p-4 space-y-3 flex-1">
-                                {grouped[groupKey].map((c, i) => (
-                                  <div key={i} className="flex justify-between items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 group-hover:border-white/10">
-                                    <span className="font-bold text-slate-200">{c.nombre}</span>
-                                    {c.docente_id ? (
-                                      <span className="text-[10px] bg-blue-500/20 border border-blue-500/30 text-blue-300 px-2 py-1 rounded-md whitespace-nowrap font-medium">Prof. ID: {c.docente_id}</span>
-                                    ) : (
-                                      <span className="text-[10px] bg-red-500/20 border border-red-500/30 text-red-300 px-2 py-1 rounded-md whitespace-nowrap font-medium animate-pulse">Sin asignar</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  </div>
+                  {cursos.length === 0
+                    ? <Card><p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No hay cursos. Haz clic en "+ Aperturar Curso" para comenzar.</p></Card>
+                    : (() => {
+                        const grouped = cursos.reduce((acc, c) => {
+                          const key = `${c.nivel} — ${c.grado}° "${c.seccion}"`
+                          if (!acc[key]) acc[key] = []
+                          acc[key].push(c); return acc
+                        }, {})
+                        const sortedKeys = Object.keys(grouped).sort((a, b) => {
+                          const lvlA = a.includes('PRIMARIA') ? 1 : 2; const lvlB = b.includes('PRIMARIA') ? 1 : 2
+                          if (lvlA !== lvlB) return lvlA - lvlB; return a.localeCompare(b)
+                        })
+                        return (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                            {sortedKeys.map(groupKey => (
+                              <Card key={groupKey} noPad>
+                                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{groupKey}</span>
+                                  <Badge label={`${grouped[groupKey].length} cursos`} variant="neutral" />
+                                </div>
+                                <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {grouped[groupKey].map((c, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px', background: C.surfaceHigh, borderRadius: 7 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: C.textPrimary }}>{c.nombre}</span>
+                                      {c.docente_id
+                                        ? <Badge label={`Prof. ID: ${c.docente_id}`} variant="accent" />
+                                        : <Badge label="Sin asignar" variant="danger" />
+                                      }
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        )
+                      })()
+                  }
                 </div>
               </ErrorBoundary>
             )}
 
+            {/* ── ASIGNACIÓN DOCENTE ────────────────────────────── */}
             {activeTab === 'asignacion_docente' && (
-              <div className="animate-fade-in-up">
-                <div className="flex items-center justify-between mb-8">
+              <div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+                  <SectionTitle sub="Malla curricular global. Asigna profesores a cursos y el sistema balanceará horas.">
+                    Asignación Docente
+                  </SectionTitle>
+                  <Btn variant="primary" onClick={handleGuardarAsignacionesInteligentes}>
+                    Guardar — {asignacionNivel === 'PRIMARIA' ? 'Primaria' : 'Secundaria'}
+                  </Btn>
+                </div>
+
+                {/* Level tabs */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: C.surface, padding: 5, borderRadius: 12, width: 'fit-content', border: `1px solid ${C.border}` }}>
+                  {['PRIMARIA', 'SECUNDARIA'].map(n => (
+                    <button key={n} onClick={() => setAsignacionNivel(n)} style={{
+                      padding: '8px 24px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
+                      background: asignacionNivel === n ? C.accent : 'transparent',
+                      color: asignacionNivel === n ? '#fff' : C.textSec,
+                    }}>{n}</button>
+                  ))}
+                </div>
+
+                {asignacionNivel === 'PRIMARIA' && (
                   <div>
-                    <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-                      <UserPlus className="w-6 h-6 text-yellow-500" /> Asignación Docente
-                    </h2>
-                    <p className="text-slate-400 mt-2">Malla curricular global. Asigna los profesores a los cursos y el sistema balanceará las horas automáticamente.</p>
-                  </div>
-                  <button onClick={handleGuardarAsignacionesInteligentes} className="w-full mt-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl font-bold transition-all">
-                    Guardar Asignaciones de {asignacionNivel === 'PRIMARIA' ? 'Primaria' : 'Secundaria'}
-                  </button>
-                </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>Tutores de Aula — Cursos Base</div>
+                      <Btn variant="ghost" size="sm" onClick={handleAutoAssignPrimaria} disabled={isAssigningPrimaria}>
+                        {isAssigningPrimaria ? 'Procesando…' : 'Autocompletar'}
+                      </Btn>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: 28 }}>
+                      {[1,2,3,4,5,6].map(g => ['A','B'].map(s => {
+                        const key = `${g}-${s}`
+                        return (
+                          <Card key={key} style={{ padding: '12px' }}>
+                            <Label style={{ fontSize: 11 }}>{g}° "{s}"</Label>
+                            <Select value={primariaTutores[key] || ''} onChange={e => setPrimariaTutores({...primariaTutores, [key]: parseInt(e.target.value) || null})}>
+                              <option value="">Tutor…</option>
+                              {docentesPrimaria.map(d => <option key={d.id} value={d.id}>{d.username.split(' ')[0]}</option>)}
+                            </Select>
+                          </Card>
+                        )
+                      }))}
+                    </div>
 
-                <div className="bg-white/5 border border-white/10 p-2 rounded-2xl mb-8 flex gap-2">
-                  <button 
-                    onClick={() => setAsignacionNivel('PRIMARIA')}
-                    className={`flex-1 py-3 rounded-xl font-bold text-lg transition-all ${asignacionNivel === 'PRIMARIA' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
-                  >
-                    Nivel Primaria
-                  </button>
-                  <button 
-                    onClick={() => setAsignacionNivel('SECUNDARIA')}
-                    className={`flex-1 py-3 rounded-xl font-bold text-lg transition-all ${asignacionNivel === 'SECUNDARIA' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
-                  >
-                    Nivel Secundaria
-                  </button>
-                </div>
-
-                <div className="bg-slate-900 border border-white/10 p-8 rounded-3xl">
-                  {asignacionNivel === 'PRIMARIA' && (
-                    <div className="animate-fade-in-up">
-                      <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-2xl font-bold text-yellow-500 flex items-center gap-3">
-                          Asignación Primaria
-                        </h3>
-                        <button 
-                          onClick={handleAutoAssignPrimaria}
-                          disabled={isAssigningPrimaria}
-                          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold text-sm transition-all disabled:opacity-50"
-                        >
-                          {isAssigningPrimaria ? "Asignando..." : "Autocompletar Asignación"}
-                        </button>
-                      </div>
-                      
-                      <div className="mb-10">
-                        <h4 className="font-bold text-xl text-slate-200 mb-6 border-b border-white/10 pb-3 flex items-center gap-2">
-                          Tutores de Aula (Cursos Base)
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                          {[1,2,3,4,5,6].map(g => (
-                            ['A', 'B'].map(s => {
-                              const key = `${g}-${s}`
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>Especialistas Rotativos</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                      {['Inglés', 'Educación Física', 'Religión'].map(curso => (
+                        <Card key={curso}>
+                          <Label>{curso}</Label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {docentesPrimaria.map(d => {
+                              const sel = primariaEspeciales[curso]?.includes(d.id)
                               return (
-                                <div key={key} className="bg-slate-900 p-4 rounded-xl border border-white/5 hover:border-green-500/50 transition-all shadow-inner group">
-                                  <label className="block text-sm font-bold text-slate-300 mb-3 group-hover:text-green-400 transition-colors">{g}° "{s}"</label>
-                                  <select 
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white outline-none focus:border-green-500 shadow-sm"
-                                    value={primariaTutores[key] || ''}
-                                    onChange={e => setPrimariaTutores({...primariaTutores, [key]: parseInt(e.target.value) || null})}
-                                  >
-                                    <option value="">Tutor...</option>
-                                    {docentesPrimaria.map(d => <option key={d.id} value={d.id}>{d.username.split(' ')[0]}</option>)}
-                                  </select>
-                                </div>
+                                <button key={d.id} onClick={() => setPrimariaEspeciales({...primariaEspeciales, [curso]: sel ? [] : [d.id]})} style={{
+                                  padding: '5px 12px', borderRadius: 20, border: `1px solid ${sel ? C.accent : C.border}`,
+                                  background: sel ? C.accentMuted : 'transparent', color: sel ? C.accent : C.textSec,
+                                  cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.12s',
+                                }}>{d.username}</button>
                               )
-                            })
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-bold text-xl text-slate-200 mb-6 border-b border-white/10 pb-3 flex items-center gap-2">
-                          Especialistas Rotativos
-                        </h4>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          {['Inglés', 'Educación Física', 'Religión'].map(curso => (
-                            <div key={curso} className="bg-slate-900 p-6 rounded-xl border border-white/5 hover:border-green-500/30 transition-all">
-                              <label className="block text-lg font-bold text-white mb-4">{curso}</label>
-                              <div className="flex flex-wrap gap-2">
-                                {docentesPrimaria.map(d => (
-                                  <button 
-                                    key={d.id}
-                                    onClick={() => setPrimariaEspeciales({...primariaEspeciales, [curso]: primariaEspeciales[curso]?.[0] === d.id ? [] : [d.id]})}
-                                    className={`px-4 py-2 text-sm rounded-full border transition-all ${primariaEspeciales[curso]?.includes(d.id) ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600'}`}
-                                  >
-                                    {d.username}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {asignacionNivel === 'SECUNDARIA' && (
-                    <div className="animate-fade-in-up">
-                      <div className="flex justify-between items-end mb-8">
-                        <h3 className="text-2xl font-bold text-blue-400 flex items-center gap-3">
-                          <span className="w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"></span>
-                          Asignación Secundaria
-                        </h3>
-                        <p className="text-sm text-slate-400 bg-blue-900/20 px-4 py-2 rounded-lg border border-blue-500/20">
-                          Selecciona múltiples docentes por materia. El algoritmo dividirá las horas.
-                        </p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {Object.keys(secundariaCursos).map(curso => (
-                          <div key={curso} className="bg-slate-900 p-5 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all shadow-inner">
-                            <label className="block text-base font-bold text-white mb-4 truncate border-b border-white/5 pb-3" title={curso}>{curso}</label>
-                            <div className="flex flex-wrap gap-2">
-                              {docentesSecundaria.map(d => (
-                                <button 
-                                  key={d.id}
-                                  onClick={() => handleMultiSelect(secundariaCursos, setSecundariaCursos, curso, d.id)}
-                                  className={`px-4 py-2 text-sm rounded-full border transition-all ${secundariaCursos[curso]?.includes(d.id) ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600'}`}
-                                >
-                                  {d.username.split(' ')[0]}
-                                </button>
-                              ))}
-                            </div>
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        </Card>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {asignacionNivel === 'SECUNDARIA' && (
+                  <div>
+                    <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20, padding: '10px 14px', background: C.accentMuted, borderRadius: 8, border: `1px solid ${C.accent}20` }}>
+                      Selecciona múltiples docentes por materia. El algoritmo dividirá las horas equitativamente.
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                      {Object.keys(secundariaCursos).map(curso => (
+                        <Card key={curso}>
+                          <Label style={{ marginBottom: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{curso}</Label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {docentesSecundaria.map(d => {
+                              const sel = secundariaCursos[curso]?.includes(d.id)
+                              return (
+                                <button key={d.id} onClick={() => handleMultiSelect(secundariaCursos, setSecundariaCursos, curso, d.id)} style={{
+                                  padding: '5px 12px', borderRadius: 20, border: `1px solid ${sel ? C.accent : C.border}`,
+                                  background: sel ? C.accentMuted : 'transparent', color: sel ? C.accent : C.textSec,
+                                  cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.12s',
+                                }}>{d.username.split(' ')[0]}</button>
+                              )
+                            })}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
+            {/* ── HORARIOS DOCENTES ─────────────────────────────── */}
             {activeTab === 'horarios_docentes' && (
-              <div className="animate-fade-in-up">
-                <div className="bg-white/5 border border-blue-500/30 p-8 rounded-3xl shadow-xl">
-                  <h2 className="text-2xl font-bold mb-2 flex items-center gap-3">
-                    Horarios por Docente
-                  </h2>
-                  <p className="text-slate-400 text-sm mb-8">Consulta la carga horaria semanal y las aulas asignadas a cada profesor de la institución.</p>
-                  
-                  <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl border border-white/5 mb-8">
-                    <label className="block text-sm font-bold text-white mb-3">Seleccionar Profesor</label>
-                    <select 
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:border-blue-500 outline-none text-white shadow-inner" 
-                      value={horarioDocenteId} 
-                      onChange={e => {setHorarioDocenteId(e.target.value); setPreviewMode('DOCENTE'); setHorarioPreview([])}}
-                    >
-                      <option value="">Seleccione un profesor de la lista...</option>
-                      <optgroup label="Secundaria">
-                        {docentesSecundaria.map(d => <option key={d.id} value={d.id}>{d.username}</option>)}
-                      </optgroup>
-                      <optgroup label="Primaria">
-                        {docentesPrimaria.map(d => <option key={d.id} value={d.id}>{d.username}</option>)}
-                      </optgroup>
-                    </select>
-                    
-                    <button onClick={fetchHorario} className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-blue-800/40">
-                      Consultar Horario Semanal
-                    </button>
+              <div style={{ maxWidth: 860 }}>
+                <SectionTitle sub="Consulta la carga horaria semanal de cada docente.">Horarios por Docente</SectionTitle>
+                <Card style={{ marginBottom: 24 }}>
+                  <FieldGroup label="Seleccionar Docente">
+                    <Select value={horarioDocenteId} onChange={e => { setHorarioDocenteId(e.target.value); setPreviewMode('DOCENTE'); setHorarioPreview([]) }}>
+                      <option value="">Seleccione un profesor…</option>
+                      <optgroup label="Secundaria">{docentesSecundaria.map(d => <option key={d.id} value={d.id}>{d.username}</option>)}</optgroup>
+                      <optgroup label="Primaria">{docentesPrimaria.map(d => <option key={d.id} value={d.id}>{d.username}</option>)}</optgroup>
+                    </Select>
+                  </FieldGroup>
+                  <Btn variant="primary" onClick={fetchHorario} style={{ width: '100%', justifyContent: 'center' }}>
+                    Ver Horario Semanal
+                  </Btn>
+                </Card>
+
+                {horarioPreview.length > 0 ? (
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 580 }}>
+                      <thead>
+                        <tr style={{ background: C.surfaceHigh }}>
+                          <th style={{ padding: '10px 12px', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, width: 70, textAlign: 'center', fontWeight: 600 }}>Hora</th>
+                          {dias.map(d => <th key={d} style={{ padding: '10px 8px', borderBottom: `1px solid ${C.border}`, color: C.textSec, fontWeight: 600, textAlign: 'center', fontSize: 11 }}>{d}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bloques.map((bloque, idx) => {
+                          if (bloque.isRecreo) return (
+                            <tr key={`r-${idx}`} style={{ background: C.surfaceHigh }}>
+                              <td style={{ padding: '6px 8px', borderRight: `1px solid ${C.border}`, color: C.textMuted, fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>{bloque.time}</td>
+                              <td colSpan="5" style={{ padding: '6px', textAlign: 'center', color: C.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.3em' }}>{bloque.label}</td>
+                            </tr>
+                          )
+                          return (
+                            <tr key={bloque.inicio} style={{ borderBottom: `1px solid ${C.border}` }}>
+                              <td style={{ padding: '8px', borderRight: `1px solid ${C.border}`, color: C.textMuted, fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>
+                                {bloque.inicio}<br/>—<br/>{bloque.fin}
+                              </td>
+                              {dias.map(dia => {
+                                const clase = horarioPreview.find(h => h.dia === dia && h.hora_inicio === bloque.inicio)
+                                return (
+                                  <td key={dia} style={{ padding: '6px', borderRight: `1px solid ${C.border}80`, verticalAlign: 'top' }}>
+                                    {clase
+                                      ? <div style={{ background: C.accentMuted, border: `1px solid ${C.accent}25`, borderRadius: 6, padding: '6px 8px', minHeight: 46 }}>
+                                          <div style={{ fontWeight: 600, color: C.textPrimary, fontSize: 11, marginBottom: 4 }}>{clase.curso}</div>
+                                          <div style={{ color: C.accent, fontSize: 10 }}>{clase.aula}</div>
+                                        </div>
+                                      : <div style={{ minHeight: 46, border: `1px dashed ${C.border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                          <span style={{ fontSize: 10, color: C.textMuted }}>—</span>
+                                        </div>
+                                    }
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  
-                  {horarioPreview.length > 0 ? (
-                    <div className="overflow-x-auto custom-scrollbar bg-black/40 rounded-xl border border-white/10 shadow-lg">
-                      <table className="w-full text-left border-collapse min-w-[600px]">
-                        <thead>
-                          <tr className="bg-blue-900/30 text-blue-300 text-xs uppercase tracking-wider">
-                            <th className="p-3 border-b border-r border-white/10 font-bold text-center w-24">Hora</th>
-                            {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].map(dia => (
-                              <th key={dia} className="p-3 border-b border-white/10 font-bold text-center w-1/5">{dia}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="text-xs">
-                          {[
-                            { inicio: "08:00", fin: "08:45" },
-                            { inicio: "08:45", fin: "09:30" },
-                            { inicio: "09:30", fin: "10:15" },
-                            { isRecreo: true, label: "RECREO", time: "10:15 - 10:45" },
-                            { inicio: "10:45", fin: "11:30" },
-                            { inicio: "11:30", fin: "12:15" },
-                            { inicio: "12:15", fin: "13:00" },
-                            { isRecreo: true, label: "RECREO", time: "13:00 - 13:15" },
-                            { inicio: "13:15", fin: "14:00" },
-                          ].map((bloque, idx) => {
-                            if (bloque.isRecreo) {
-                              return (
-                                <tr key={`recreo-${idx}`} className="bg-white/5 border-b border-white/10">
-                                  <td className="p-2 border-r border-white/10 text-center text-slate-500 font-mono text-[10px]">{bloque.time}</td>
-                                  <td colSpan="5" className="p-2 text-center text-blue-500/50 font-bold tracking-[0.5em]">{bloque.label}</td>
-                                </tr>
-                              )
-                            }
-                            return (
-                              <tr key={bloque.inicio} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <td className="p-2 border-r border-white/10 text-center text-slate-400 font-mono text-[10px]">
-                                  {bloque.inicio}<br/>|<br/>{bloque.fin}
-                                </td>
-                                {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].map(dia => {
-                                  const clase = horarioPreview.find(h => h.dia === dia && h.hora_inicio === bloque.inicio)
-                                  return (
-                                    <td key={`${dia}-${bloque.inicio}`} className="p-2 border-r border-white/5 last:border-0 align-top">
-                                      {clase ? (
-                                        <div className="h-full bg-blue-900/20 border border-blue-500/20 rounded p-3 flex flex-col justify-between hover:border-blue-400/50 transition-colors shadow-sm">
-                                          <span className="font-bold text-white leading-tight mb-2 text-sm">{clase.curso}</span>
-                                          <span className="text-xs text-blue-300 font-medium bg-blue-950/50 py-1 px-2 rounded w-fit border border-blue-500/20">
-                                            {clase.aula}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <div className="h-full min-h-[56px] rounded border border-dashed border-white/10 flex items-center justify-center">
-                                          <span className="text-[10px] text-slate-600">Libre</span>
-                                        </div>
-                                      )}
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-12 bg-slate-900 rounded-2xl border border-white/10 border-dashed">
-                      <p className="text-slate-500 text-sm">Selecciona un profesor y haz clic en "Consultar Horario Semanal" para visualizar su carga académica.</p>
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <Card>
+                    <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
+                      Selecciona un docente y haz clic en "Ver Horario Semanal".
+                    </p>
+                  </Card>
+                )}
               </div>
             )}
 
+            {/* ── RIESGO ACADÉMICO ─────────────────────────────── */}
             {activeTab === 'riesgo' && (
-              <div className="animate-fade-in-up space-y-8">
-                <h2 className="text-2xl font-bold mb-6">Reporte de Riesgo Académico</h2>
-                
-                <div className="grid grid-cols-1 gap-8">
-                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-xl font-semibold mb-4 text-yellow-500">Casos Críticos por Bajo Rendimiento / Asistencia al Psicólogo</h3>
-                    {(!state?.alertas_ia || state.alertas_ia.length === 0) ? (
-                      <p className="text-slate-500 italic">No hay alertas de reincidencia generadas por el Sistema.</p>
-                    ) : (
-                      <div className="space-y-4">
+              <div style={{ maxWidth: 800 }}>
+                <SectionTitle sub="Alertas generadas por el sistema de seguimiento académico.">Riesgo Académico</SectionTitle>
+                <Card>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Casos Críticos — Bajo Rendimiento / Reincidencia Psicológica
+                  </div>
+                  {(!state?.alertas_ia || state.alertas_ia.length === 0)
+                    ? <p style={{ color: C.textMuted, fontStyle: 'italic', fontSize: 13 }}>No hay alertas activas en este momento.</p>
+                    : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {state.alertas_ia.map((alerta, i) => (
-                          <div key={i} className="bg-slate-900 border border-white/10 p-4 rounded-xl border-l-4 border-l-yellow-500">
-                            <h4 className="font-bold text-yellow-500">Alumno: {alerta.alumno} ({alerta.citas} citas recurrentes)</h4>
-                            <p className="text-sm mt-2 text-slate-300 italic">"{alerta.reporte}"</p>
-                            <p className="text-xs text-yellow-600 mt-3 flex items-center gap-1">El apoderado ya fue citado de urgencia vía correo automatizado.</p>
+                          <div key={i} style={{ padding: '14px 16px', background: C.warnBg, border: `1px solid ${C.warn}40`, borderLeft: `3px solid ${C.warnText}`, borderRadius: 10 }}>
+                            <div style={{ fontWeight: 700, color: C.warnText, marginBottom: 6, fontSize: 13 }}>
+                              {alerta.alumno} — {alerta.citas} citas registradas
+                            </div>
+                            <p style={{ fontSize: 12, color: C.textSec, fontStyle: 'italic', margin: 0 }}>"{alerta.reporte}"</p>
+                            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 8 }}>El apoderado fue notificado por correo automáticamente.</p>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                  }
+                </Card>
               </div>
             )}
 
+            {/* ── MONITOR DE RECURSOS ───────────────────────────── */}
             {activeTab === 'ia' && (
-              <div className="animate-fade-in-up grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-4 space-y-6">
-                  <h2 className="text-xl font-bold mb-4">Métricas del Sistema</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, maxWidth: 1100 }}>
+                {/* Métricas */}
+                <div>
+                  <SectionTitle>Métricas del Sistema</SectionTitle>
                   {telemetry ? (
-                    <div className="space-y-4">
-                      <div className="p-5 bg-slate-900 border border-white/10 rounded-xl border-l-4 border-l-yellow-500">
-                        <p className="text-sm text-slate-400">Llamadas Totales al Sistema</p>
-                        <p className="text-3xl font-bold">{telemetry.calls}</p>
-                      </div>
-                      <div className="p-5 bg-slate-900/60 backdrop-blur-md border border-white/10 rounded-xl border-l-4 border-l-green-500">
-                        <p className="text-sm text-slate-400">Tasa de Éxito</p>
-                        <p className="text-3xl font-bold">{telemetry.calls > 0 ? Math.round((telemetry.success_calls/telemetry.calls)*100) : 0}%</p>
-                      </div>
-                      <div className="p-5 bg-slate-900/60 backdrop-blur-md border border-white/10 rounded-xl border-l-4 border-l-blue-500 flex flex-col justify-between">
-                        <div>
-                          <p className="text-sm text-slate-400">Tokens Consumidos</p>
-                          <div className="flex items-baseline gap-2">
-                            <p className="text-3xl font-bold">{telemetry.total_tokens?.toLocaleString()}</p>
-                            <span className="text-sm text-blue-400 font-semibold">{telemetry.token_percentage?.toFixed(2)}%</span>
-                          </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {[
+                        { label: 'Llamadas Totales', val: telemetry.calls, color: C.accent },
+                        { label: 'Tasa de Éxito', val: `${telemetry.calls > 0 ? Math.round((telemetry.success_calls/telemetry.calls)*100) : 0}%`, color: C.successText },
+                      ].map(m => (
+                        <Card key={m.label}>
+                          <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
+                          <div style={{ fontSize: 28, fontWeight: 800, color: m.color }}>{m.val}</div>
+                        </Card>
+                      ))}
+                      <Card>
+                        <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tokens Consumidos</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: C.textPrimary }}>{telemetry.total_tokens?.toLocaleString()}</span>
+                          <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>{telemetry.token_percentage?.toFixed(2)}%</span>
                         </div>
-                        <div className="mt-3 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className={`h-full ${telemetry.token_percentage > 90 ? 'bg-red-500 shadow-[0_0_10px_red]' : telemetry.token_percentage > 75 ? 'bg-orange-500 shadow-[0_0_10px_orange]' : 'bg-blue-500 shadow-[0_0_10px_blue]'} transition-all duration-1000 ease-out`} 
-                            style={{ width: `${Math.min(telemetry.token_percentage || 0, 100)}%` }}
-                          ></div>
+                        <div style={{ height: 4, background: C.surfaceHigh, borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%', borderRadius: 4, transition: 'width 1s ease',
+                            width: `${Math.min(telemetry.token_percentage || 0, 100)}%`,
+                            background: telemetry.token_percentage > 90 ? C.dangerText : telemetry.token_percentage > 75 ? C.warnText : C.accent,
+                          }} />
                         </div>
-                        <p className="text-xs text-slate-500 mt-1 text-right">Cuota: {telemetry.tokens_quota?.toLocaleString()}</p>
-                      </div>
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, textAlign: 'right' }}>Cuota: {telemetry.tokens_quota?.toLocaleString()}</div>
+                      </Card>
                     </div>
-                  ) : <p className="text-slate-500">Cargando métricas...</p>}
+                  ) : <p style={{ color: C.textMuted, fontSize: 13 }}>Cargando métricas…</p>}
                 </div>
-                
-                <div className="lg:col-span-8 flex flex-col h-[600px]">
-                  <h2 className="text-xl font-bold mb-4">Monitor de Memoria Compartida (Raw JSON)</h2>
-                  <div className="flex-1 bg-[#0d1117] border border-slate-800 rounded-xl overflow-hidden flex flex-col">
-                    <div className="h-8 bg-[#161b22] border-b border-slate-800 flex items-center px-4 gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span className="ml-4 text-xs font-mono text-slate-400">school_unified_db.json</span>
+
+                {/* Raw JSON */}
+                <div>
+                  <SectionTitle>Monitor de Memoria (Raw JSON)</SectionTitle>
+                  <div style={{ background: '#0d1117', border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', height: 500, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ height: 34, background: '#161b22', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 8 }}>
+                      {['#ff5f56','#ffbd2e','#27c93f'].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
+                      <span style={{ marginLeft: 8, fontSize: 11, fontFamily: 'monospace', color: C.textMuted }}>school_unified_db.json</span>
                     </div>
-                    <div className="p-4 flex-1 overflow-auto custom-scrollbar">
-                      <pre className="font-mono text-xs text-green-400">
+                    <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+                      <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#6bcf9a', margin: 0 }}>
                         {state ? JSON.stringify(state, null, 2).split('\n').map((l, i) => (
-                          <div key={i} className="hover:bg-white/5 px-2 -mx-2"><span className="text-slate-600 mr-4 select-none">{i+1}</span>{l}</div>
-                        )) : 'Cargando...'}
+                          <div key={i} style={{ paddingLeft: 8 }}>
+                            <span style={{ color: C.textMuted, userSelect: 'none', marginRight: 12, fontSize: 10 }}>{i+1}</span>{l}
+                          </div>
+                        )) : 'Cargando…'}
                       </pre>
                     </div>
                   </div>
@@ -1164,390 +1129,281 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* ── ANÁLISIS DE DATOS ─────────────────────────────── */}
             {activeTab === 'bi_analytics' && (
-              <div className="space-y-6 animate-fade-in-up">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    Análisis de Datos
-                  </h2>
-                </div>
-                <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
-                  <p className="text-slate-400 mb-4">Haz preguntas en lenguaje natural sobre la base de datos del colegio. El sistema procesará tu pregunta de manera segura y analizará los resultados.</p>
-                  
-                  <div className="flex gap-4 mb-6">
-                    <input 
-                      type="text"
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
-                      placeholder="Ej: ¿Qué porcentaje de alumnos tienen alertas psicológicas de nivel Alto?"
-                      value={biQuery}
-                      onChange={(e) => setBiQuery(e.target.value)}
+              <div style={{ maxWidth: 800 }}>
+                <SectionTitle sub="Haz preguntas en lenguaje natural sobre la base de datos del colegio.">Análisis de Datos</SectionTitle>
+                <Card>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                    <Input
+                      type="text" value={biQuery} onChange={e => setBiQuery(e.target.value)}
+                      placeholder="Ej: ¿Qué % de alumnos tienen alertas psicológicas de nivel Alto?"
+                      style={{ flex: 1 }}
                     />
-                    <button 
-                      onClick={handleBiQuery}
-                      disabled={loadingBi}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl disabled:opacity-50 transition-all"
-                    >
-                      {loadingBi ? 'Procesando...' : 'Preguntar'}
-                    </button>
+                    <Btn variant="primary" onClick={handleBiQuery} disabled={loadingBi} style={{ whiteSpace: 'nowrap' }}>
+                      {loadingBi ? 'Procesando…' : 'Consultar'}
+                    </Btn>
                   </div>
-
                   {biResponse && (
-                    <div className="bg-slate-950 rounded-xl p-6 border border-white/10">
-                      <h3 className="text-yellow-500 font-bold mb-3">Respuesta del Sistema:</h3>
-                      <div className="text-slate-300 prose prose-invert max-w-none whitespace-pre-wrap">
-                        {biResponse}
-                      </div>
+                    <div style={{ padding: '16px', background: C.surfaceHigh, borderRadius: 10, borderLeft: `3px solid ${C.accent}` }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respuesta</div>
+                      <div style={{ fontSize: 13, color: C.textSec, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{biResponse}</div>
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
             )}
 
+            {/* ── FIN DE AÑO ────────────────────────────────────── */}
             {activeTab === 'cierre' && (
-              <div className="animate-fade-in-up flex flex-col items-center justify-center min-h-[500px]">
-                <div className="bg-white/5 border border-red-500/30 p-10 rounded-3xl shadow-[0_0_50px_rgba(239,68,68,0.15)] max-w-2xl w-full text-center">
-                  <h2 className="text-4xl font-black text-red-500 mb-4">Fin de Año Escolar</h2>
-                  <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-                    Al ejecutar el cierre escolar, el sistema procesará todas las notas para calcular el <b>promedio final</b> de cada alumno. Determinará quién aprueba y quién repite, y <b>enviará diplomas o reportes académicos</b> por correo electrónico a los padres.
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 500 }}>
+                <Card style={{ maxWidth: 520, width: '100%', textAlign: 'center', border: `1px solid ${C.danger}40` }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: C.dangerText, marginBottom: 8 }}>Fin de Año Escolar</div>
+                  <p style={{ color: C.textSec, fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
+                    Al ejecutar el cierre, el sistema calculará el promedio final de cada alumno, determinará aprobados y reprobados, y enviará reportes académicos por correo a los padres.
                   </p>
-                  <div className="bg-slate-900 border border-red-500/50 p-4 rounded-xl text-red-400 text-sm font-bold text-left mb-8 flex items-start gap-3">
-                    <p>¡ADVERTENCIA! Esta acción no se puede deshacer. Borrará todos los horarios generados y liberará a todos los tutores para preparar el sistema para el siguiente año escolar.</p>
+                  <div style={{ padding: '12px 16px', background: C.dangerBg, border: `1px solid ${C.danger}40`, borderRadius: 9, fontSize: 12, color: C.dangerText, textAlign: 'left', marginBottom: 24, fontWeight: 600 }}>
+                    ⚠ Esta acción es irreversible. Borrará todos los horarios y liberará a todos los tutores.
                   </div>
-                  
-                  <button 
-                    onClick={async () => {
-                      if(confirm('¿ESTÁ ABSOLUTAMENTE SEGURO? Se procesarán notas, se enviarán correos reales y se borrarán horarios y tutores.')) {
-                        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cierre_escolar`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-                        const data = await res.json()
-                        alert(data.message)
-                        fetchData()
-                      }
-                    }}
-                    className="w-full py-5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 rounded-xl font-black text-xl transition-all shadow-[0_0_30px_rgba(225,29,72,0.4)] tracking-wide uppercase"
-                  >
+                  <button onClick={async () => {
+                    if(confirm('¿ESTÁ ABSOLUTAMENTE SEGURO? Se procesarán notas, se enviarán correos reales y se borrarán horarios y tutores.')) {
+                      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cierre_escolar`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+                      const data = await res.json()
+                      alert(data.message); fetchData()
+                    }
+                  }} style={{
+                    width: '100%', padding: '14px', borderRadius: 10, border: `1px solid ${C.dangerText}50`,
+                    background: C.dangerBg, color: C.dangerText, cursor: 'pointer', fontSize: 14,
+                    fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.15s',
+                  }}>
                     Ejecutar Cierre de Año Escolar
                   </button>
-                </div>
+                </Card>
               </div>
             )}
 
+            {/* ── ASIGNADOR IA ─────────────────────────────────── */}
             {activeTab === 'asignador_ia' && (
-              <div className="animate-fade-in-up">
-                <div className="bg-slate-900 border border-white/10 p-10 rounded-3xl max-w-4xl mx-auto">
-                  <h2 className="text-3xl font-black text-yellow-500 mb-4 flex items-center gap-3">
-                    Asignación Automática de Tutores
-                  </h2>
-                  <p className="text-slate-300 text-lg mb-8">
-                    El Sistema distribuirá a los docentes de secundaria disponibles equitativamente entre las aulas para asignarles la tutoría principal del año escolar.
+              <div style={{ maxWidth: 720 }}>
+                <SectionTitle sub="El sistema distribuye a los docentes de secundaria equitativamente entre las aulas.">
+                  Asignación Automática de Tutores
+                </SectionTitle>
+                <Card>
+                  <p style={{ color: C.textSec, fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                    Se analizarán los perfiles de docentes disponibles y se les asignará la tutoría principal del año escolar de forma óptima, sin repeticiones.
                   </p>
-                  
-                  <button 
-                    onClick={handleRunSmartMatch}
-                    disabled={isMatching}
-                    className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 rounded-xl font-bold transition-all text-white text-lg"
-                  >
-                    {isMatching ? "Procesando asignaciones..." : "Ejecutar Asignación de Tutores"}
-                  </button>
+                  <Btn variant="primary" onClick={handleRunSmartMatch} disabled={isMatching} style={{ width: '100%', justifyContent: 'center' }}>
+                    {isMatching ? 'Procesando asignaciones…' : 'Ejecutar Asignación de Tutores'}
+                  </Btn>
 
                   {matchResult && (
-                    <div className="mt-10 animate-fade-in-up">
-                      <h3 className="text-xl font-bold text-yellow-500 mb-6">Resultados de Asignación</h3>
-                      <div className="grid gap-6">
+                    <div style={{ marginTop: 24 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resultados</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {matchResult.map((match, idx) => (
-                          <div key={idx} className="bg-slate-800 border border-white/10 p-6 rounded-2xl">
-                            <div className="flex items-center gap-4 mb-4">
-                              <div className="bg-white/5 text-slate-200 px-4 py-2 rounded-lg font-bold border border-white/10">Aula: {match.classroom_id}</div>
-                              <div className="text-slate-500">➡️</div>
-                              <div className="bg-yellow-500/20 text-yellow-500 px-4 py-2 rounded-lg font-bold">Tutor: {match.teacher_id}</div>
-                            </div>
-                            <p className="text-slate-400 italic bg-slate-950 p-4 rounded-xl border border-white/10 text-sm">
-                              Asignación procesada automáticamente para el año escolar en curso.
-                            </p>
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.surfaceHigh, borderRadius: 9 }}>
+                            <Badge label={`Aula: ${match.classroom_id}`} variant="neutral" />
+                            <span style={{ color: C.textMuted, fontSize: 12 }}>→</span>
+                            <Badge label={`Tutor ID: ${match.teacher_id}`} variant="accent" />
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
             )}
 
-            {/* ======== SÍLABOS ======== */}
+            {/* ── SÍLABOS ──────────────────────────────────────── */}
             {activeTab === 'silabos_ia' && (
-              <div className="animate-fade-in-up space-y-8">
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-8">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div>
-                      <h2 className="text-2xl font-black text-white">Gestor de Sílabos</h2>
-                      <p className="text-slate-400 text-sm mt-1">
-                        Procesamiento Automatizado &bull; Currículo Nacional 2019
-                      </p>
-                    </div>
-                  </div>
+              <div style={{ maxWidth: 860 }}>
+                <SectionTitle sub="Generación automatizada · Currículo Nacional 2019">Gestor de Sílabos</SectionTitle>
 
-                  {/* Diagrama del pipeline */}
-                  <div className="grid grid-cols-6 gap-1 mb-8">
-                    {[
-                      { label: 'Construcción\nde Contexto' },
-                      { label: 'Definición\nde Competencias' },
-                      { label: 'Creación\nde Cronograma' },
-                      { label: 'Criterios\nde Evaluación' },
-                      { label: 'Validación\nEstructural' },
-                      { label: 'Registro\nen Sistema' },
-                    ].map((node, i) => (
-                      <div key={i} className={`flex flex-col items-center gap-2 p-3 bg-slate-800 border border-white/10 rounded-xl text-center`}>
-                        <span className="text-[10px] text-slate-400 leading-tight whitespace-pre-line">{node.label}</span>
+                {/* Pipeline visual */}
+                <div style={{ display: 'flex', gap: 4, marginBottom: 28, overflowX: 'auto' }}>
+                  {['Contexto', 'Competencias', 'Cronograma', 'Evaluación', 'Validación', 'Registro'].map((node, i, arr) => (
+                    <React.Fragment key={node}>
+                      <div style={{ flex: 1, minWidth: 90, padding: '8px 10px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600, lineHeight: 1.4 }}>{node}</div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Panel de generación por grado */}
-                  <div className="bg-slate-950 border border-white/10 rounded-2xl p-6 mb-6">
-                    <h3 className="text-lg font-bold text-yellow-500 mb-4">Generación por Grado</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase">Nivel</label>
-                        <select
-                          className="w-full bg-slate-900 border border-violet-500/30 rounded-xl p-3 text-white text-sm outline-none"
-                          value={silaboGenNivel}
-                          onChange={e => { setSilaboGenNivel(e.target.value); setSilaboGenGrado(1) }}
-                        >
-                          <option value="PRIMARIA">Primaria (1° - 6°)</option>
-                          <option value="SECUNDARIA">Secundaria (1° - 5°)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase">Grado</label>
-                        <select
-                          className="w-full bg-slate-900 border border-violet-500/30 rounded-xl p-3 text-white text-sm outline-none"
-                          value={silaboGenGrado}
-                          onChange={e => setSilaboGenGrado(Number(e.target.value))}
-                        >
-                          {(silaboGenNivel === 'PRIMARIA'
-                            ? [1,2,3,4,5,6]
-                            : [1,2,3,4,5]
-                          ).map(g => (
-                            <option key={g} value={g}>{g}° Grado</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <button
-                          onClick={async () => {
-                            setSilaboGenLoading(true)
-                            setSilaboGenResultados(null)
-                            const fases = ['Marco curricular','Competencias','Cronograma','Evaluación','Validación','Persistencia']
-                            let fi = 0; setSilaboGenFase(fases[0])
-                            const t = setInterval(() => { fi = Math.min(fi+1, fases.length-1); setSilaboGenFase(fases[fi]) }, 5000)
-                            try {
-                              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/silabo/generar-grado`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                body: JSON.stringify({ nivel: silaboGenNivel, grado: silaboGenGrado, anno_escolar: '2025' })
-                              })
-                              const data = await res.json()
-                              setSilaboGenResultados(data)
-                            } finally {
-                              clearInterval(t); setSilaboGenLoading(false); setSilaboGenFase('')
-                            }
-                          }}
-                          disabled={silaboGenLoading || silaboGenTodosLoading}
-                          className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {silaboGenLoading
-                            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Generando...</>
-                            : 'Generar Sílabos del Grado'
-                          }
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Indicador de fase */}
-                    {silaboGenLoading && (
-                      <div className="p-3 bg-slate-900 border border-white/10 rounded-xl flex items-center gap-3">
-                        <div className="w-4 h-4 border-2 border-yellow-400/40 border-t-yellow-400 rounded-full animate-spin"></div>
-                        <div>
-                          <p className="text-yellow-500 text-xs font-semibold">Procesamiento en curso</p>
-                          <p className="text-slate-400 text-xs">{silaboGenFase}</p>
-                        </div>
-                        <div className="ml-auto flex gap-1.5">
-                          {[1,2,3,4,5,6].map((e, i) => (
-                            <div key={i} className={`w-2 h-2 rounded-full transition-all bg-slate-700`}></div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Resultados por grado */}
-                    {silaboGenResultados && !silaboGenLoading && (
-                      <div className="mt-4">
-                        <div className="flex items-center gap-4 mb-3">
-                          <span className="text-sm font-bold text-white">
-                            {silaboGenNivel} {silaboGenGrado}° Grado
-                          </span>
-                          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full">
-                            {silaboGenResultados.generados}/{silaboGenResultados.total_areas} generados
-                          </span>
-                          {silaboGenResultados.fallidos > 0 && (
-                            <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-full">
-                              {silaboGenResultados.fallidos} fallidos
-                            </span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {silaboGenResultados.detalle?.map((d, i) => (
-                            <div key={i} className={`p-3 rounded-xl border text-xs ${
-                              d.status === 'OK'
-                                ? 'bg-slate-900 border-green-500/20 text-green-400'
-                                : 'bg-slate-900 border-red-500/20 text-red-400'
-                            }`}>
-                              <span className="font-bold">{d.status === 'OK' ? 'Completado' : 'Error'}</span> - {d.area}
-                              {d.status === 'OK' && <span className="ml-1 text-green-400/60">(#{d.silabo_id})</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Panel de generación TOTAL */}
-                  <div className="bg-slate-950 border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-lg font-bold text-yellow-500 mb-2 flex items-center gap-2">
-                      Generación Masiva — Todos los Grados
-                    </h3>
-                    <p className="text-slate-400 text-sm mb-4">
-                      Genera automáticamente sílabos completos para <strong className="text-white">TODOS</strong> los grados
-                      de Primaria (1°-6°) y Secundaria (1°-5°). El sistema procesa la información en paralelo por área dentro de cada grado. Esta operación puede tardar varios minutos.
-                    </p>
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm('Esto iniciará la generación masiva para TODOS los grados y áreas. ¿Continuar?')) return
-                        setSilaboGenTodosLoading(true)
-                        setSilaboGenTodosResult(null)
-                        try {
-                          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/silabo/generar-todos?anno_escolar=2025`, {
-                            method: 'POST',
-                            headers: { Authorization: `Bearer ${token}` }
-                          })
-                          const data = await res.json()
-                          setSilaboGenTodosResult(data)
-                        } finally {
-                          setSilaboGenTodosLoading(false)
-                        }
-                      }}
-                      disabled={silaboGenTodosLoading || silaboGenLoading}
-                      className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-2xl transition-all text-base disabled:opacity-50 flex items-center justify-center gap-3"
-                    >
-                      {silaboGenTodosLoading
-                        ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Generando todos los sílabos... (puede tardar 3-10 min)</>
-                        : <>Generar Sílabos para TODO el Colegio</>
-                      }
-                    </button>
-
-                    {silaboGenTodosResult && !silaboGenTodosLoading && (
-                      <div className="mt-6 animate-fade-in-up">
-                        <div className="flex flex-wrap gap-3 mb-4">
-                          <div className="px-4 py-2 bg-white/10 rounded-xl text-sm">
-                            <span className="text-slate-400">Total:</span> <strong className="text-white">{silaboGenTodosResult.total_combinaciones}</strong>
-                          </div>
-                          <div className="px-4 py-2 bg-slate-900 border border-green-500/20 rounded-xl text-sm">
-                            <span className="text-green-400">Generados: <strong>{silaboGenTodosResult.generados}</strong></span>
-                          </div>
-                          {silaboGenTodosResult.fallidos > 0 && (
-                            <div className="px-4 py-2 bg-slate-900 border border-red-500/20 rounded-xl text-sm">
-                              <span className="text-red-400">Fallidos: <strong>{silaboGenTodosResult.fallidos}</strong></span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-                          {silaboGenTodosResult.detalle?.map((d, i) => (
-                            <div key={i} className={`flex items-center gap-3 p-2 rounded-lg text-xs ${
-                              d.status === 'OK'
-                                ? 'bg-slate-900 text-green-300'
-                                : 'bg-slate-900 text-red-300'
-                            }`}>
-                              <span>{d.status === 'OK' ? 'Exitoso' : 'Error'}</span>
-                              <span className="font-semibold">{d.nivel} {d.grado}°</span>
-                              <span className="flex-1">{d.area}</span>
-                              {d.status === 'OK' && (
-                                <span className="text-slate-500">#{d.silabo_id} &bull; {d.retries || 0} retry(s)</span>
-                              )}
-                              {d.error && <span className="text-red-400 truncate max-w-32">{d.error}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      {i < arr.length - 1 && <div style={{ alignSelf: 'center', color: C.textMuted, fontSize: 12 }}>›</div>}
+                    </React.Fragment>
+                  ))}
                 </div>
+
+                {/* Generación por grado */}
+                <Card style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Generación por Grado</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <Label>Nivel</Label>
+                      <Select value={silaboGenNivel} onChange={e => { setSilaboGenNivel(e.target.value); setSilaboGenGrado(1) }}>
+                        <option value="PRIMARIA">Primaria (1° – 6°)</option>
+                        <option value="SECUNDARIA">Secundaria (1° – 5°)</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Grado</Label>
+                      <Select value={silaboGenGrado} onChange={e => setSilaboGenGrado(Number(e.target.value))}>
+                        {(silaboGenNivel === 'PRIMARIA' ? [1,2,3,4,5,6] : [1,2,3,4,5]).map(g => <option key={g} value={g}>{g}° Grado</option>)}
+                      </Select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <Btn variant="primary" disabled={silaboGenLoading || silaboGenTodosLoading} onClick={async () => {
+                        setSilaboGenLoading(true); setSilaboGenResultados(null)
+                        const fases = ['Marco curricular','Competencias','Cronograma','Evaluación','Validación','Persistencia']
+                        let fi = 0; setSilaboGenFase(fases[0])
+                        const t = setInterval(() => { fi = Math.min(fi+1, fases.length-1); setSilaboGenFase(fases[fi]) }, 5000)
+                        try {
+                          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/silabo/generar-grado`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ nivel: silaboGenNivel, grado: silaboGenGrado, anno_escolar: '2025' })
+                          })
+                          const data = await res.json(); setSilaboGenResultados(data)
+                        } finally { clearInterval(t); setSilaboGenLoading(false); setSilaboGenFase('') }
+                      }}>
+                        {silaboGenLoading ? 'Generando…' : 'Generar'}
+                      </Btn>
+                    </div>
+                  </div>
+
+                  {silaboGenLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: C.surfaceHigh, borderRadius: 9 }}>
+                      <div style={{ width: 14, height: 14, border: `2px solid ${C.accent}30`, borderTop: `2px solid ${C.accent}`, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <div>
+                        <div style={{ fontSize: 12, color: C.textSec, fontWeight: 600 }}>Procesando</div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>{silaboGenFase}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {silaboGenResultados && !silaboGenLoading && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{silaboGenNivel} {silaboGenGrado}°</span>
+                        <Badge label={`${silaboGenResultados.generados}/${silaboGenResultados.total_areas} generados`} variant="success" />
+                        {silaboGenResultados.fallidos > 0 && <Badge label={`${silaboGenResultados.fallidos} fallidos`} variant="danger" />}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
+                        {silaboGenResultados.detalle?.map((d, i) => (
+                          <div key={i} style={{ padding: '8px 10px', background: C.surfaceHigh, borderRadius: 7, fontSize: 11, color: d.status === 'OK' ? C.successText : C.dangerText, border: `1px solid ${d.status === 'OK' ? C.success : C.danger}30` }}>
+                            <span style={{ fontWeight: 700 }}>{d.status === 'OK' ? '✓' : '✗'}</span> {d.area}
+                            {d.status === 'OK' && <span style={{ color: C.textMuted, marginLeft: 4 }}>#{d.silabo_id}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+
+                {/* Generación masiva */}
+                <Card>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Generación Masiva — Todos los Grados</div>
+                  <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                    Genera sílabos para <strong style={{ color: C.textSec }}>todos</strong> los grados de Primaria y Secundaria en paralelo. Esta operación puede tardar varios minutos.
+                  </p>
+                  <Btn variant="primary" disabled={silaboGenTodosLoading || silaboGenLoading} style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={async () => {
+                      if (!window.confirm('Iniciará la generación masiva para TODOS los grados. ¿Continuar?')) return
+                      setSilaboGenTodosLoading(true); setSilaboGenTodosResult(null)
+                      try {
+                        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/deep-agents/silabo/generar-todos?anno_escolar=2025`, {
+                          method: 'POST', headers: { Authorization: `Bearer ${token}` }
+                        })
+                        const data = await res.json(); setSilaboGenTodosResult(data)
+                      } finally { setSilaboGenTodosLoading(false) }
+                    }}>
+                    {silaboGenTodosLoading
+                      ? <><div style={{ width: 14, height: 14, border: `2px solid #ffffff30`, borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />Generando todos los sílabos…</>
+                      : 'Generar Sílabos para Todo el Colegio'
+                    }
+                  </Btn>
+
+                  {silaboGenTodosResult && !silaboGenTodosLoading && (
+                    <div style={{ marginTop: 20 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                        <Badge label={`Total: ${silaboGenTodosResult.total_combinaciones}`} variant="neutral" />
+                        <Badge label={`Generados: ${silaboGenTodosResult.generados}`} variant="success" />
+                        {silaboGenTodosResult.fallidos > 0 && <Badge label={`Fallidos: ${silaboGenTodosResult.fallidos}`} variant="danger" />}
+                      </div>
+                      <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {silaboGenTodosResult.detalle?.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: C.surfaceHigh, borderRadius: 7, fontSize: 11, color: d.status === 'OK' ? C.successText : C.dangerText }}>
+                            <span style={{ fontWeight: 700 }}>{d.status === 'OK' ? '✓' : '✗'}</span>
+                            <span style={{ color: C.textSec, fontWeight: 600 }}>{d.nivel} {d.grado}°</span>
+                            <span style={{ flex: 1, color: C.textMuted }}>{d.area}</span>
+                            {d.status === 'OK' && <span style={{ color: C.textMuted }}>#{d.silabo_id}</span>}
+                            {d.error && <span style={{ color: C.dangerText, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.error}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </div>
             )}
+
           </div>
         </div>
       </main>
+
       <ChatWidget roleName="Asistente Directivo" />
-      
+
+      {/* ── Modal Aperturar Curso ─────────────────────────────────── */}
       {showCursoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in-up">
-          <div className="bg-slate-950 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setShowCursoModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">✕</button>
-            <h3 className="text-xl font-bold text-yellow-500 mb-6">Aperturar Nuevo Curso</h3>
-            <form onSubmit={handleCrearCurso} className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Nombre del Curso</label>
-                <input type="text" required className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors" placeholder="Ej: Matemática Avanzada" value={cursoForm.nombre} onChange={e => setCursoForm({...cursoForm, nombre: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Nivel</label>
-                <select className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-yellow-500 transition-colors"
-                  value={cursoForm.nivel}
-                  onChange={e => {
-                    const nuevoNivel = e.target.value
-                    setCursoForm({...cursoForm, nivel: nuevoNivel})
-                    setGradosSeleccionados(GRADOS[nuevoNivel]) // reset a todos marcados
-                  }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '2rem', maxWidth: 440, width: '90%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button onClick={() => setShowCursoModal(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: C.textSec, cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 20 }}>Aperturar Nuevo Curso</div>
+            <form onSubmit={handleCrearCurso}>
+              <FieldGroup label="Nombre del Curso">
+                <Input type="text" required placeholder="Ej: Matemática Avanzada" value={cursoForm.nombre} onChange={e => setCursoForm({...cursoForm, nombre: e.target.value})} />
+              </FieldGroup>
+              <FieldGroup label="Nivel">
+                <Select value={cursoForm.nivel} onChange={e => { const n = e.target.value; setCursoForm({...cursoForm, nivel: n}); setGradosSeleccionados(GRADOS[n]) }}>
                   <option value="PRIMARIA">Primaria</option>
                   <option value="SECUNDARIA">Secundaria</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-2">Grados aplicables</label>
-                <p className="text-xs text-slate-500 mb-3">Todos marcados por defecto. Destilda los que no apliquen.</p>
-                <div className="grid grid-cols-3 gap-2">
+                </Select>
+              </FieldGroup>
+              <div style={{ marginBottom: 20 }}>
+                <Label>Grados aplicables</Label>
+                <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>Destilda los que no apliquen.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {GRADOS[cursoForm.nivel].map(g => (
-                    <label key={g} className={`flex items-center gap-2 cursor-pointer rounded-lg px-3 py-2 border transition-all
-                      ${gradosSeleccionados.includes(g)
-                        ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                        : 'border-white/10 bg-slate-900 text-slate-400'}`}>
-                      <input
-                        type="checkbox"
-                        checked={gradosSeleccionados.includes(g)}
-                        onChange={() => {
-                          setGradosSeleccionados(prev =>
-                            prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g].sort((a,b) => a - b)
-                          )
-                        }}
-                        className="accent-yellow-500"
-                      />
-                      <span className="font-semibold">{g}°</span>
+                    <label key={g} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                      padding: '8px 12px', borderRadius: 8,
+                      background: gradosSeleccionados.includes(g) ? C.accentMuted : C.surfaceHigh,
+                      border: `1px solid ${gradosSeleccionados.includes(g) ? C.accent : C.border}`,
+                      color: gradosSeleccionados.includes(g) ? C.accent : C.textSec,
+                      fontSize: 13, fontWeight: 600,
+                    }}>
+                      <input type="checkbox" checked={gradosSeleccionados.includes(g)} onChange={() => {
+                        setGradosSeleccionados(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g].sort((a,b) => a-b))
+                      }} style={{ accentColor: C.accent }} />
+                      {g}°
                     </label>
                   ))}
                 </div>
-                {gradosSeleccionados.length === 0 && (
-                  <p className="text-xs text-red-400 mt-2">⚠ Selecciona al menos un grado.</p>
-                )}
+                {gradosSeleccionados.length === 0 && <p style={{ fontSize: 11, color: C.dangerText, marginTop: 8 }}>Selecciona al menos un grado.</p>}
               </div>
-              <button type="submit" disabled={gradosSeleccionados.length === 0}
-                className="w-full py-4 mt-6 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all">
-                {gradosSeleccionados.length > 0
-                  ? `Aplicar a ${gradosSeleccionados.length} grado${gradosSeleccionados.length > 1 ? 's' : ''} seleccionado${gradosSeleccionados.length > 1 ? 's' : ''}`
-                  : 'Selecciona al menos un grado'}
-              </button>
+              <Btn type="submit" variant="primary" disabled={gradosSeleccionados.length === 0} style={{ width: '100%', justifyContent: 'center' }}>
+                {gradosSeleccionados.length > 0 ? `Aplicar a ${gradosSeleccionados.length} grado${gradosSeleccionados.length > 1 ? 's' : ''}` : 'Selecciona al menos un grado'}
+              </Btn>
             </form>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+        *::-webkit-scrollbar { width: 5px; height: 5px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        optgroup { background: #13131e; color: #8b8fa8; }
+        option { background: #13131e; color: #e8e9f0; }
+      `}</style>
     </div>
   )
 }
-
