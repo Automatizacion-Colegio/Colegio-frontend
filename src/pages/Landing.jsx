@@ -22,7 +22,7 @@ function useScrollReveal(options = {}) {
           observer.unobserve(el); // dispara solo una vez
         }
       },
-      { threshold: options.threshold ?? 0.12, rootMargin: options.rootMargin ?? '0px' }
+      { threshold: options.threshold ?? 0.18, rootMargin: options.rootMargin ?? '0px' }
     );
 
     observer.observe(el);
@@ -40,7 +40,7 @@ function useScrollReveal(options = {}) {
      from    → 'bottom' | 'left' | 'right' | 'top'
      distance → px de desplazamiento inicial
 ───────────────────────────────────────────── */
-function RevealEl({ children, delay = 0, from = 'bottom', distance = 40, className = '', threshold = 0.12 }) {
+function RevealEl({ children, delay = 0, from = 'bottom', distance = 50, className = '', threshold = 0.18 }) {
   const [ref, visible] = useScrollReveal({ threshold });
 
   const transforms = {
@@ -224,7 +224,7 @@ export default function Landing() {
           {/* Cards con stagger */}
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Card 01 */}
-            <RevealEl from="bottom" distance={50} delay={0} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={0} threshold={0.15}>
               <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-800/60 transition-colors h-full">
                 <div className="flex items-center gap-4 mb-8">
                   <span className="text-4xl font-bold text-blue-600">01</span>
@@ -241,7 +241,7 @@ export default function Landing() {
             </RevealEl>
 
             {/* Card 02 */}
-            <RevealEl from="bottom" distance={50} delay={150} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={150} threshold={0.15}>
               <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-yellow-600/40 transition-colors h-full">
                 <div className="flex items-center gap-4 mb-8">
                   <span className="text-4xl font-bold text-yellow-600">02</span>
@@ -258,7 +258,7 @@ export default function Landing() {
             </RevealEl>
 
             {/* Card 03 */}
-            <RevealEl from="bottom" distance={50} delay={300} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={300} threshold={0.15}>
               <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-400/50 transition-colors h-full">
                 <div className="flex items-center gap-4 mb-8">
                   <span className="text-4xl font-bold text-blue-300">03</span>
@@ -284,7 +284,7 @@ export default function Landing() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-6">
 
           {/* Imagen izquierda — entra desde la izquierda */}
-          <RevealEl from="left" distance={60} threshold={0.1}>
+          <RevealEl from="left" distance={60} threshold={0.15}>
             <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
               <img src="/images/nosotros.png" alt="Nosotros" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
@@ -301,7 +301,7 @@ export default function Landing() {
           </RevealEl>
 
           {/* Imagen derecha — entra desde la derecha */}
-          <RevealEl from="right" distance={60} delay={150} threshold={0.1}>
+          <RevealEl from="right" distance={60} delay={150} threshold={0.15}>
             <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
               <img src="/images/campus.png" alt="Campus" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
@@ -333,7 +333,7 @@ export default function Landing() {
         
         <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12">
           <div className="lg:max-w-[60%]">
-            <RevealEl from="bottom" distance={40} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} threshold={0.15}>
               <div className="mb-6">
                 <span className="inline-flex items-center gap-3 text-sm font-mono text-yellow-500">
                   <span className="w-8 h-px bg-yellow-600"></span>Formación Integral
@@ -347,7 +347,7 @@ export default function Landing() {
               </h2>
             </RevealEl>
 
-            <RevealEl from="bottom" distance={30} delay={200} threshold={0.1}>
+            <RevealEl from="bottom" distance={40} delay={200} threshold={0.15}>
               <p className="text-xl text-slate-400 max-w-xl leading-relaxed mb-10">
                 Vive la experiencia de un ecosistema escolar donde la tecnología, el arte y el deporte se unen para formar los líderes del mañana.
               </p>
@@ -368,7 +368,7 @@ export default function Landing() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
 
           {/* Título */}
-          <RevealEl from="bottom" distance={50} threshold={0.08}>
+          <RevealEl from="bottom" distance={50} threshold={0.15}>
             <div className="mb-20">
               <div className="flex items-center gap-4 mb-6">
                 <span className="flex items-center gap-2 px-3 py-1 bg-blue-900/40 border border-blue-800/50 text-blue-300 text-xs font-mono rounded">
@@ -384,7 +384,7 @@ export default function Landing() {
 
           {/* Cards métricas con stagger */}
           <div className="grid lg:grid-cols-3 gap-6">
-            <RevealEl from="bottom" distance={50} delay={0} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={0} threshold={0.15}>
               <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
                 <div className="text-sm font-mono text-white/40 mb-2">MEMORIA COMPARTIDA</div>
                 <div className="text-5xl font-bold text-white mb-6">Estado Central</div>
@@ -392,7 +392,7 @@ export default function Landing() {
               </div>
             </RevealEl>
 
-            <RevealEl from="bottom" distance={50} delay={150} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={150} threshold={0.15}>
               <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
                 <div className="text-sm font-mono text-white/40 mb-2">TELEMETRÍA LANGSMITH</div>
                 <div className="text-5xl font-bold text-white mb-6">Doble Proveedor</div>
@@ -400,7 +400,7 @@ export default function Landing() {
               </div>
             </RevealEl>
 
-            <RevealEl from="bottom" distance={50} delay={300} threshold={0.1}>
+            <RevealEl from="bottom" distance={50} delay={300} threshold={0.15}>
               <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
                 <div className="text-sm font-mono text-white/40 mb-2">CACHÉ SEMÁNTICA</div>
                 <div className="text-5xl font-bold text-white mb-6">Redis Cache</div>

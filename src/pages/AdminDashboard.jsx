@@ -4,7 +4,7 @@ import ChatWidget from '../components/ChatWidget'
 import { 
   GraduationCap, Users, UserPlus, BookOpen, Clock, AlertTriangle, 
   PartyPopper, Brain, BarChart3, Bot, DollarSign, Settings,
-  RefreshCw, LogOut, ChevronRight, Zap
+  RefreshCw, LogOut, ChevronRight, Zap, UserCheck, TrendingUp
 } from 'lucide-react'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -59,6 +59,34 @@ const Card = ({ children, style = {}, noPad = false }) => (
     ...style
   }}>
     {children}
+  </div>
+)
+
+const MetricCard = ({ label, value, sub, icon, color }) => (
+  <div style={{
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderLeft: `3px solid ${color}`,
+    borderRadius: 14,
+    padding: '1.25rem 1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    transition: 'border-color 0.2s',
+    background: `linear-gradient(135deg, ${color}08 0%, ${C.surface} 60%)`,
+  }}>
+    <div style={{
+      width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+      background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: color,
+    }}>
+      {icon}
+    </div>
+    <div>
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: C.textPrimary, lineHeight: 1 }}>{value ?? '—'}</div>
+      {sub && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontFamily: 'monospace' }}>{sub}</div>}
+    </div>
   </div>
 )
 
@@ -161,6 +189,9 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('alumnos') 
   
   const [userForm, setUserForm] = useState({ username: '', password: '', role: 'DOCENTE', nivel_asignado: 'PRIMARIA' })
+  const [cursosDisponibles, setCursosDisponibles] = useState([])   // [{nombre, niveles}]
+  const [especializaciones, setEspecializaciones] = useState([])   // [{curso_nombre, nivel}]
+  const [horarioWarnings, setHorarioWarnings] = useState([])       // advertencias del timetabler
   const [tutorForm, setTutorForm] = useState({ nivel: 'SECUNDARIA', grado: '1', seccion: 'A', docente_id: '' })
   const [tutoresAsignados, setTutoresAsignados] = useState([])
   
@@ -229,17 +260,45 @@ export default function AdminDashboard() {
     return () => clearInterval(interval)
   }, [token])
 
+  // Cargar cursos disponibles para el multi-select de especialización
+  useEffect(() => {
+    if (userForm.role === 'DOCENTE' && userForm.nivel_asignado && token) {
+      fetch(`${import.meta.env.VITE_API_URL}/api/cursos/nombres-unicos?nivel=${userForm.nivel_asignado}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(data => { if (Array.isArray(data)) setCursosDisponibles(data) })
+        .catch(() => setCursosDisponibles([]))
+      setEspecializaciones([])  // Reset al cambiar nivel
+    } else {
+      setCursosDisponibles([])
+      setEspecializaciones([])
+    }
+  }, [userForm.role, userForm.nivel_asignado, token])
+
   const handleCreateUser = async (e) => {
     e.preventDefault()
     setMsg(null)
+    if (userForm.role === 'DOCENTE' && especializaciones.length === 0) {
+      return setMsg({ text: 'Debes seleccionar al menos una especialización para el docente.', type: 'error' })
+    }
     try {
+      const body = {
+        ...userForm,
+        nivel_asignado: userForm.role === 'DOCENTE' ? userForm.nivel_asignado : null,
+        especializaciones: userForm.role === 'DOCENTE' ? especializaciones : undefined,
+      }
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...userForm, nivel_asignado: userForm.role === 'DOCENTE' ? userForm.nivel_asignado : null })
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       setMsg({ text: data.message || data.detail, type: res.ok ? 'success' : 'error' })
-      if(res.ok) { setUserForm({ username: '', password: '', role: 'DOCENTE', nivel_asignado: 'PRIMARIA' }); fetchData() }
+      if(res.ok) {
+        setUserForm({ username: '', password: '', role: 'DOCENTE', nivel_asignado: 'PRIMARIA' })
+        setEspecializaciones([])
+        fetchData()
+      }
     } catch(err) { setMsg({ text: 'Error de conexión', type: 'error' }) }
   }
 
@@ -289,15 +348,20 @@ export default function AdminDashboard() {
 
   const handleGenerarHorarios = async (targetNivel) => {
     if (!confirm(`Esto regenerará y reemplazará todos los horarios para ${targetNivel}. ¿Proceder?`)) return;
+    setHorarioWarnings([])
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/generar_horarios?nivel=${targetNivel}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }
       })
-      if (!res.ok) throw new Error()
-      setMsg({ text: `Horario académico de ${targetNivel} generado correctamente.`, type: 'success' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Error al generar')
+      const warnings = data.advertencias || []
+      setHorarioWarnings(warnings)
+      const estado = data.estado === 'OK' ? 'sin conflictos' : `con ${data.bloques_sin_docente} bloque(s) sin docente`
+      setMsg({ text: `Horario de ${targetNivel} generado ${estado}.`, type: data.estado === 'OK' ? 'success' : 'warn' })
       fetchHorario()
-    } catch {
-      setMsg({ text: 'No se pudo generar el horario. Verifica si asignaste suficientes docentes.', type: 'error' })
+    } catch(err) {
+      setMsg({ text: err.message || 'No se pudo generar el horario.', type: 'error' })
     }
   }
 
@@ -432,7 +496,7 @@ export default function AdminDashboard() {
       items: [
         { id: 'alumnos',          label: 'Alumnos',           icon: <GraduationCap size={15} /> },
         { id: 'personal',         label: 'Personal (RRHH)',    icon: <Users size={15} /> },
-        { id: 'asignacion_docente',label: 'Asignación Docente',icon: <UserPlus size={15} /> },
+        { id: 'asignacion_docente',label: 'Asignación Docente',icon: <UserCheck size={15} /> },
         { id: 'academico',        label: 'Gestión Académica',  icon: <BookOpen size={15} /> },
         { id: 'horarios_docentes',label: 'Horarios Docentes',  icon: <Clock size={15} /> },
       ]
@@ -551,6 +615,37 @@ export default function AdminDashboard() {
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '32px', boxSizing: 'border-box' }}>
+          {/* ── KPI METRICS ROW ─────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
+            <MetricCard
+              label="Total Alumnos"
+              value={Object.keys(state?.enrolled_students || {}).length}
+              sub={`+${Object.keys(state?.enrolled_students || {}).length} matriculados`}
+              icon={<GraduationCap size={20} />}
+              color={C.successText}
+            />
+            <MetricCard
+              label="Docentes Activos"
+              value={users.filter(u => u.role === 'DOCENTE' && u.is_active).length}
+              sub={`${users.filter(u => u.role === 'DOCENTE').length} registrados`}
+              icon={<Users size={20} />}
+              color={C.accent}
+            />
+            <MetricCard
+              label="Cursos Aperturados"
+              value={cursos.length}
+              sub={`${[...new Set(cursos.map(c => c.nivel))].join(' · ') || '—'}`}
+              icon={<BookOpen size={20} />}
+              color={C.warnText}
+            />
+            <MetricCard
+              label="Tutores Asignados"
+              value={tutoresAsignados.length}
+              sub="asignaciones activas"
+              icon={<UserCheck size={20} />}
+              color="#a78bfa"
+            />
+          </div>
           {msg && <Alert variant={msg.type === 'success' ? 'success' : 'error'}>{msg.text}</Alert>}
 
           <div style={{ maxWidth: 1400 }}>
@@ -676,31 +771,84 @@ export default function AdminDashboard() {
 
             {/* ── PERSONAL ──────────────────────────────────────── */}
             {activeTab === 'personal' && (
-              <div style={{ maxWidth: 640 }}>
+              <div style={{ maxWidth: 760 }}>
                 <SectionTitle sub="Crea cuentas de acceso para el cuerpo docente y psicológico.">Registro de Personal</SectionTitle>
                 <Card style={{ marginBottom: 24 }}>
                   <form onSubmit={handleCreateUser}>
-                    <FieldGroup label="Nombre de Usuario (Login)">
-                      <Input type="text" required value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} placeholder="Ej: jmendoza" />
-                    </FieldGroup>
-                    <FieldGroup label="Contraseña">
-                      <Input type="password" required value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder="••••••••" />
-                    </FieldGroup>
-                    <FieldGroup label="Rol en el Sistema">
-                      <Select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}>
-                        <option value="DOCENTE">Docente (Notas)</option>
-                        <option value="PSICOLOGO">Psicólogo (Evaluación Conductual)</option>
-                        <option value="SECRETARIO">Secretario (Caja y Atención)</option>
-                      </Select>
-                    </FieldGroup>
-                    {userForm.role === 'DOCENTE' && (
-                      <FieldGroup label="Nivel Asignado">
-                        <Select value={userForm.nivel_asignado} onChange={e => setUserForm({...userForm, nivel_asignado: e.target.value})}>
-                          <option value="PRIMARIA">Primaria (Polidocente)</option>
-                          <option value="SECUNDARIA">Secundaria (Especializado)</option>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <FieldGroup label="Nombre de Usuario (Login)">
+                        <Input type="text" required value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} placeholder="Ej: jmendoza" />
+                      </FieldGroup>
+                      <FieldGroup label="Contraseña">
+                        <Input type="password" required value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder="••••••••" />
+                      </FieldGroup>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <FieldGroup label="Rol en el Sistema">
+                        <Select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value, nivel_asignado: 'PRIMARIA'})}>
+                          <option value="DOCENTE">Docente (Notas)</option>
+                          <option value="PSICOLOGO">Psicólogo (Evaluación Conductual)</option>
+                          <option value="SECRETARIO">Secretario (Caja y Atención)</option>
                         </Select>
                       </FieldGroup>
+                      {userForm.role === 'DOCENTE' && (
+                        <FieldGroup label="Nivel Asignado">
+                          <Select value={userForm.nivel_asignado} onChange={e => setUserForm({...userForm, nivel_asignado: e.target.value})}>
+                            <option value="PRIMARIA">Primaria (Polidocente)</option>
+                            <option value="SECUNDARIA">Secundaria (Especializado)</option>
+                          </Select>
+                        </FieldGroup>
+                      )}
+                    </div>
+
+                    {/* ── Especialización multi-select (solo DOCENTE) ── */}
+                    {userForm.role === 'DOCENTE' && (
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <Label>Especialización(es) *</Label>
+                        <p style={{ fontSize: 11, color: C.textMuted, marginBottom: 10, marginTop: 0 }}>
+                          Cursos que este docente está habilitado para enseñar en nivel {userForm.nivel_asignado}.
+                        </p>
+                        {cursosDisponibles.length === 0 ? (
+                          <div style={{ padding: '10px 14px', background: C.surfaceHigh, borderRadius: 9, fontSize: 12, color: C.textMuted, fontStyle: 'italic' }}>
+                            {userForm.nivel_asignado ? 'Cargando cursos…' : 'Selecciona un nivel primero.'}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {cursosDisponibles.map(c => {
+                              const sel = especializaciones.some(e => e.curso_nombre === c.nombre)
+                              return (
+                                <button
+                                  key={c.nombre}
+                                  type="button"
+                                  onClick={() => {
+                                    if (sel) setEspecializaciones(prev => prev.filter(e => e.curso_nombre !== c.nombre))
+                                    else setEspecializaciones(prev => [...prev, { curso_nombre: c.nombre, nivel: userForm.nivel_asignado }])
+                                  }}
+                                  style={{
+                                    padding: '6px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 12,
+                                    fontWeight: 600, transition: 'all 0.15s',
+                                    border: `1px solid ${sel ? C.accent : C.border}`,
+                                    background: sel ? C.accentMuted : 'transparent',
+                                    color: sel ? C.accent : C.textSec,
+                                  }}
+                                >
+                                  {sel ? '✓ ' : ''}{c.nombre}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {especializaciones.length > 0 && (
+                          <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.accent}12`, border: `1px solid ${C.accent}25`, borderRadius: 8, fontSize: 11, color: C.accent }}>
+                            Seleccionados: {especializaciones.map(e => e.curso_nombre).join(', ')}
+                          </div>
+                        )}
+                        {userForm.role === 'DOCENTE' && especializaciones.length === 0 && cursosDisponibles.length > 0 && (
+                          <div style={{ marginTop: 8, fontSize: 11, color: C.warnText }}>⚠ Selecciona al menos un curso.</div>
+                        )}
+                      </div>
                     )}
+
                     <Btn type="submit" variant="primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
                       Crear Cuenta Institucional
                     </Btn>
@@ -715,28 +863,58 @@ export default function AdminDashboard() {
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
-                            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                              {['Usuario', 'Rol', 'Nivel', 'Estado', 'Acción'].map(h => (
-                                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                            <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surfaceHigh }}>
+                              {['Usuario', 'Rol', 'Nivel', 'Especialización(es)', 'Estado', 'Acción'].map(h => (
+                                <th key={h} style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {users.map(u => (
-                              <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                                <td style={{ padding: '12px 16px', fontWeight: 600, color: C.textPrimary }}>{u.username}</td>
-                                <td style={{ padding: '12px 16px', color: C.textSec }}>{u.role}</td>
-                                <td style={{ padding: '12px 16px', color: C.textSec }}>{u.nivel_asignado || '—'}</td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <Badge label={u.is_active ? 'Activo' : 'Suspendido'} variant={u.is_active ? 'success' : 'danger'} />
-                                </td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <Btn size="sm" variant={u.is_active ? 'danger' : 'success'} onClick={() => handleToggleStatus(u.id)}>
-                                    {u.is_active ? 'Suspender' : 'Activar'}
-                                  </Btn>
-                                </td>
-                              </tr>
-                            ))}
+                            {users.map((u, idx) => {
+                              const rolColor = { DOCENTE: C.accent, PSICOLOGO: '#a78bfa', SECRETARIO: C.warnText }[u.role] || C.textSec
+                              const rolVariant = { DOCENTE: 'accent', PSICOLOGO: 'warn', SECRETARIO: 'warn' }[u.role] || 'neutral'
+                              return (
+                                <tr key={u.id} className="admin-tr" style={{ borderBottom: `1px solid ${C.border}`, background: idx % 2 === 0 ? 'transparent' : `${C.surfaceHigh}60` }}>
+                                  <td style={{ padding: '11px 16px', fontWeight: 700, color: C.textPrimary }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${rolColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <span style={{ fontSize: 12, color: rolColor, fontWeight: 800 }}>{u.username[0]?.toUpperCase()}</span>
+                                      </div>
+                                      {u.username}
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '11px 16px' }}>
+                                    <Badge label={u.role} variant={rolVariant} />
+                                  </td>
+                                  <td style={{ padding: '11px 16px', color: C.textSec, fontFamily: 'monospace', fontSize: 12 }}>{u.nivel_asignado || '—'}</td>
+                                  <td style={{ padding: '11px 16px', maxWidth: 220 }}>
+                                    {u.role === 'DOCENTE' && u.especializaciones?.length > 0 ? (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {u.especializaciones.map(e => (
+                                          <span key={e.curso_nombre} style={{
+                                            display: 'inline-block', padding: '2px 8px', borderRadius: 5,
+                                            fontSize: 10, fontWeight: 600, background: 'rgba(255,255,255,0.05)',
+                                            border: `1px solid ${C.border}`, color: C.textSec,
+                                          }}>{e.curso_nombre}</span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span style={{ color: u.role === 'DOCENTE' ? C.warnText : C.textMuted, fontSize: 12 }}>
+                                        {u.role === 'DOCENTE' ? '⚠ Sin especialización' : '—'}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '11px 16px' }}>
+                                    <Badge label={u.is_active ? 'Activo' : 'Suspendido'} variant={u.is_active ? 'success' : 'danger'} />
+                                  </td>
+                                  <td style={{ padding: '11px 16px' }}>
+                                    <Btn size="sm" variant={u.is_active ? 'danger' : 'success'} onClick={() => handleToggleStatus(u.id)}>
+                                      {u.is_active ? 'Suspender' : 'Activar'}
+                                    </Btn>
+                                  </td>
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -755,12 +933,25 @@ export default function AdminDashboard() {
                   <Card style={{ marginBottom: 28 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                       <Btn variant="muted" onClick={() => handleGenerarHorarios('PRIMARIA')} style={{ width: '100%', justifyContent: 'center' }}>
-                        Generar Horario Primaria
+                        <TrendingUp size={14} /> Generar Horario Primaria
                       </Btn>
                       <Btn variant="primary" onClick={() => handleGenerarHorarios('SECUNDARIA')} style={{ width: '100%', justifyContent: 'center' }}>
-                        Generar Horario Secundaria
+                        <TrendingUp size={14} /> Generar Horario Secundaria
                       </Btn>
                     </div>
+                    {horarioWarnings.length > 0 && (
+                      <div style={{ padding: '12px 14px', background: C.warnBg, border: `1px solid ${C.warn}40`, borderLeft: `3px solid ${C.warnText}`, borderRadius: 9, marginBottom: 16 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.warnText, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          ⚠ {horarioWarnings.length} advertencia(s) — cursos sin docente especializado
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 140, overflowY: 'auto' }}>
+                          {horarioWarnings.map((w, i) => (
+                            <div key={i} style={{ fontSize: 12, color: C.warnText, fontFamily: 'monospace' }}>• {w}</div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8 }}>Registra docentes con esas especializaciones y regenera el horario.</div>
+                      </div>
+                    )}
 
                     <Divider />
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Previsualizar por Aula</div>
@@ -1403,6 +1594,8 @@ export default function AdminDashboard() {
         *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
         optgroup { background: #13131e; color: #8b8fa8; }
         option { background: #13131e; color: #e8e9f0; }
+        .admin-tr { transition: background 0.12s; }
+        .admin-tr:hover { background: rgba(79,110,247,0.04) !important; }
       `}</style>
     </div>
   )
