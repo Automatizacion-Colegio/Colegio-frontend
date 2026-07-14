@@ -1193,7 +1193,7 @@ export default function AdminDashboard() {
 
             {/* ── HORARIOS DOCENTES ─────────────────────────────── */}
             {activeTab === 'horarios_docentes' && (
-              <div style={{ maxWidth: 860 }}>
+              <div style={{ maxWidth: 860, margin: '0 auto' }}>
                 <SectionTitle sub="Consulta la carga horaria semanal de cada docente.">Horarios por Docente</SectionTitle>
                 <Card style={{ marginBottom: 24 }}>
                   <FieldGroup label="Seleccionar Docente">
@@ -1264,7 +1264,7 @@ export default function AdminDashboard() {
 
             {/* ── RIESGO ACADÉMICO ─────────────────────────────── */}
             {activeTab === 'riesgo' && (
-              <div style={{ maxWidth: 800 }}>
+              <div style={{ maxWidth: 800, margin: '0 auto' }}>
                 <SectionTitle sub="Alertas generadas por el sistema de seguimiento académico.">Riesgo Académico</SectionTitle>
                 <Card>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1290,7 +1290,7 @@ export default function AdminDashboard() {
 
             {/* ── MONITOR DE RECURSOS ───────────────────────────── */}
             {activeTab === 'ia' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, maxWidth: 1100 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
                 {/* Métricas */}
                 <div>
                   <SectionTitle>Métricas del Sistema</SectionTitle>
@@ -1330,7 +1330,7 @@ export default function AdminDashboard() {
 
             {/* ── ANÁLISIS DE DATOS ─────────────────────────────── */}
             {activeTab === 'bi_analytics' && (
-              <div style={{ maxWidth: 800 }}>
+              <div style={{ maxWidth: 800, margin: '0 auto' }}>
                 <SectionTitle sub="Haz preguntas en lenguaje natural sobre la base de datos del colegio.">Análisis de Datos</SectionTitle>
                 <Card>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
@@ -1383,7 +1383,7 @@ export default function AdminDashboard() {
 
             {/* ── ASIGNADOR IA ─────────────────────────────────── */}
             {activeTab === 'asignador_ia' && (
-              <div style={{ maxWidth: 720 }}>
+              <div style={{ maxWidth: 720, margin: '0 auto' }}>
                 <SectionTitle sub="El sistema distribuye a los docentes de secundaria equitativamente entre las aulas.">
                   Asignación Automática de Tutores
                 </SectionTitle>
@@ -1415,7 +1415,7 @@ export default function AdminDashboard() {
 
             {/* ── SÍLABOS ──────────────────────────────────────── */}
             {activeTab === 'silabos_ia' && (
-              <div style={{ maxWidth: 860 }}>
+              <div style={{ maxWidth: 860, margin: '0 auto' }}>
                 <SectionTitle sub="Generación automatizada · Currículo Nacional 2019">Gestor de Sílabos</SectionTitle>
 
                 {/* Pipeline visual */}
