@@ -814,7 +814,30 @@ export default function AdminDashboard() {
                             {userForm.nivel_asignado ? 'Cargando cursos…' : 'Selecciona un nivel primero.'}
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <>
+                            {userForm.nivel_asignado === 'PRIMARIA' && (
+                              <div style={{ marginBottom: 12 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const exclusions = ['Inglés', 'Educación Física', 'Religión'];
+                                    const base = cursosDisponibles
+                                      .filter(c => !exclusions.includes(c.nombre))
+                                      .map(c => ({ curso_nombre: c.nombre, nivel: 'PRIMARIA' }));
+                                    setEspecializaciones(base);
+                                  }}
+                                  style={{
+                                    padding: '6px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 12,
+                                    fontWeight: 700, transition: 'all 0.15s',
+                                    border: `1px solid ${C.accent}`, background: C.accent, color: '#fff',
+                                    display: 'inline-flex', alignItems: 'center', gap: 6
+                                  }}
+                                >
+                                  ✨ Auto-seleccionar Cursos Base (Polidocente)
+                                </button>
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {cursosDisponibles.map(c => {
                               const sel = especializaciones.some(e => e.curso_nombre === c.nombre)
                               return (
@@ -838,6 +861,7 @@ export default function AdminDashboard() {
                               )
                             })}
                           </div>
+                          </>
                         )}
                         {especializaciones.length > 0 && (
                           <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.accent}12`, border: `1px solid ${C.accent}25`, borderRadius: 8, fontSize: 11, color: C.accent }}>
