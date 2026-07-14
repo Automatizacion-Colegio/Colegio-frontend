@@ -648,7 +648,7 @@ export default function AdminDashboard() {
           </div>
           {msg && <Alert variant={msg.type === 'success' ? 'success' : 'error'}>{msg.text}</Alert>}
 
-          <div style={{ maxWidth: 1400 }}>
+          <div style={{ width: '100%' }}>
 
             {/* ── ALUMNOS ──────────────────────────────────────── */}
             {activeTab === 'alumnos' && (
