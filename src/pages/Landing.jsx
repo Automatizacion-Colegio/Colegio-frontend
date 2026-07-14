@@ -1,6 +1,69 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import ChatWidget from '../components/ChatWidget'
+
+/* ─────────────────────────────────────────────
+   Hook: useScrollReveal
+   Retorna una ref + clase CSS según si el elemento
+   ya es visible en el viewport (IntersectionObserver)
+───────────────────────────────────────────── */
+function useScrollReveal(options = {}) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el); // dispara solo una vez
+        }
+      },
+      { threshold: options.threshold ?? 0.12, rootMargin: options.rootMargin ?? '0px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, visible];
+}
+
+/* ─────────────────────────────────────────────
+   Componente wrapper: RevealEl
+   Envuelve cualquier elemento con fade-up on scroll
+   Props:
+     delay   → retraso en ms (para stagger)
+     from    → 'bottom' | 'left' | 'right' | 'top'
+     distance → px de desplazamiento inicial
+───────────────────────────────────────────── */
+function RevealEl({ children, delay = 0, from = 'bottom', distance = 40, className = '', threshold = 0.12 }) {
+  const [ref, visible] = useScrollReveal({ threshold });
+
+  const transforms = {
+    bottom: `translateY(${distance}px)`,
+    top:    `translateY(-${distance}px)`,
+    left:   `translateX(-${distance}px)`,
+    right:  `translateX(${distance}px)`,
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        transition: `opacity 0.75s cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 0.75s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+        opacity:   visible ? 1 : 0,
+        transform: visible ? 'translate(0,0)' : transforms[from],
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function Landing() {
   const [mounted, setMounted] = useState(false);
@@ -12,14 +75,11 @@ export default function Landing() {
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // Siempre visible en el tope
       if (currentScrollY < 50) {
         setIsNavVisible(true);
       } else if (currentScrollY > lastScrollY) {
-        // Scroll hacia abajo
         setIsNavVisible(false);
       } else {
-        // Scroll hacia arriba
         setIsNavVisible(true);
       }
       lastScrollY = currentScrollY;
@@ -59,7 +119,7 @@ export default function Landing() {
         </nav>
       </header>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION — animación de entrada inicial (ya existe con mounted) */}
       <section className="relative min-h-screen flex flex-col justify-center items-start overflow-hidden bg-black">
         {/* Background Video Layer */}
         <div className="absolute inset-0 z-0">
@@ -133,11 +193,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PROCESS SECTION */}
+      {/* ═══════════════════════════════════════════
+          PROCESS SECTION — scroll reveal
+      ═══════════════════════════════════════════ */}
       <section id="process" className="relative py-24 lg:py-32 bg-[#02040a] border-t border-white/5">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+
+          {/* Header 2‑col */}
           <div className="grid lg:grid-cols-2 gap-12 items-end mb-20">
-            <div>
+            <RevealEl from="left" distance={50}>
               <span className="inline-flex items-center gap-3 text-sm font-mono text-white/40 mb-6">
                 <span className="w-12 h-px bg-white/20"></span>Flujo Autónomo
               </span>
@@ -146,93 +210,118 @@ export default function Landing() {
                 <span className="block text-white/30">Deriva.</span>
                 <span className="block text-white/10">Resuelve.</span>
               </h2>
-            </div>
-            <div className="pb-4">
-              <p className="text-xl text-slate-400 leading-relaxed max-w-md">
-                Cada interacción de padres y alumnos es procesada por un enrutador semántico que delega las tareas a especialistas IA en tiempo real.
-              </p>
-            </div>
+            </RevealEl>
+
+            <RevealEl from="right" distance={50} delay={150}>
+              <div className="pb-4">
+                <p className="text-xl text-slate-400 leading-relaxed max-w-md">
+                  Cada interacción de padres y alumnos es procesada por un enrutador semántico que delega las tareas a especialistas IA en tiempo real.
+                </p>
+              </div>
+            </RevealEl>
           </div>
 
+          {/* Cards con stagger */}
           <div className="grid lg:grid-cols-3 gap-6">
-            <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-800/60 transition-colors">
-              <div className="flex items-center gap-4 mb-8">
-                <span className="text-4xl font-bold text-blue-600">01</span>
-                <div className="flex-1 h-px bg-white/10 overflow-hidden">
-                  <div className="h-full bg-blue-700 w-0 group-hover:w-full transition-all duration-1000"></div>
+            {/* Card 01 */}
+            <RevealEl from="bottom" distance={50} delay={0} threshold={0.1}>
+              <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-800/60 transition-colors h-full">
+                <div className="flex items-center gap-4 mb-8">
+                  <span className="text-4xl font-bold text-blue-600">01</span>
+                  <div className="flex-1 h-px bg-white/10 overflow-hidden">
+                    <div className="h-full bg-blue-700 w-0 group-hover:w-full transition-all duration-1000"></div>
+                  </div>
                 </div>
+                <h3 className="text-3xl font-bold mb-2">Recepción</h3>
+                <span className="text-lg text-white/40 block mb-6 font-mono">Enrutador Llama 3</span>
+                <p className="text-white/60 leading-relaxed">
+                  El Agente Soporte clasifica la consulta al instante. Si detecta matrícula, invoca al Agente Administrador; si hay quejas, llama al Psicólogo.
+                </p>
               </div>
-              <h3 className="text-3xl font-bold mb-2">Recepción</h3>
-              <span className="text-lg text-white/40 block mb-6 font-mono">Enrutador Llama 3</span>
-              <p className="text-white/60 leading-relaxed">
-                El Agente Soporte clasifica la consulta al instante. Si detecta matrícula, invoca al Agente Administrador; si hay quejas, llama al Psicólogo.
-              </p>
-            </div>
-            
-            <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-yellow-600/40 transition-colors">
-              <div className="flex items-center gap-4 mb-8">
-                <span className="text-4xl font-bold text-yellow-600">02</span>
-                <div className="flex-1 h-px bg-white/10 overflow-hidden">
-                  <div className="h-full bg-yellow-600 w-0 group-hover:w-full transition-all duration-1000"></div>
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold mb-2">Evaluación</h3>
-              <span className="text-lg text-white/40 block mb-6 font-mono">Agentes Especializados</span>
-              <p className="text-white/60 leading-relaxed">
-                El Agente Psicólogo evalúa conductas de riesgo. El Agente Evaluador emite reportes de desempeño académico y tutoría.
-              </p>
-            </div>
+            </RevealEl>
 
-            <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-400/50 transition-colors">
-              <div className="flex items-center gap-4 mb-8">
-                <span className="text-4xl font-bold text-blue-300">03</span>
-                <div className="flex-1 h-px bg-white/10 overflow-hidden">
-                  <div className="h-full bg-blue-400 w-0 group-hover:w-full transition-all duration-1000"></div>
+            {/* Card 02 */}
+            <RevealEl from="bottom" distance={50} delay={150} threshold={0.1}>
+              <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-yellow-600/40 transition-colors h-full">
+                <div className="flex items-center gap-4 mb-8">
+                  <span className="text-4xl font-bold text-yellow-600">02</span>
+                  <div className="flex-1 h-px bg-white/10 overflow-hidden">
+                    <div className="h-full bg-yellow-600 w-0 group-hover:w-full transition-all duration-1000"></div>
+                  </div>
                 </div>
+                <h3 className="text-3xl font-bold mb-2">Evaluación</h3>
+                <span className="text-lg text-white/40 block mb-6 font-mono">Agentes Especializados</span>
+                <p className="text-white/60 leading-relaxed">
+                  El Agente Psicólogo evalúa conductas de riesgo. El Agente Evaluador emite reportes de desempeño académico y tutoría.
+                </p>
               </div>
-              <h3 className="text-3xl font-bold mb-2">Acción</h3>
-              <span className="text-lg text-white/40 block mb-6 font-mono">Bases de Datos & Memoria</span>
-              <p className="text-white/60 leading-relaxed">
-                Los agentes ejecutan tools seguras para guardar matrículas en PostgreSQL o lanzar alertas pedagógicas globales por el Event Bus.
-              </p>
-            </div>
+            </RevealEl>
+
+            {/* Card 03 */}
+            <RevealEl from="bottom" distance={50} delay={300} threshold={0.1}>
+              <div className="bg-black border border-white/10 p-10 lg:p-12 group hover:border-blue-400/50 transition-colors h-full">
+                <div className="flex items-center gap-4 mb-8">
+                  <span className="text-4xl font-bold text-blue-300">03</span>
+                  <div className="flex-1 h-px bg-white/10 overflow-hidden">
+                    <div className="h-full bg-blue-400 w-0 group-hover:w-full transition-all duration-1000"></div>
+                  </div>
+                </div>
+                <h3 className="text-3xl font-bold mb-2">Acción</h3>
+                <span className="text-lg text-white/40 block mb-6 font-mono">Bases de Datos &amp; Memoria</span>
+                <p className="text-white/60 leading-relaxed">
+                  Los agentes ejecutan tools seguras para guardar matrículas en PostgreSQL o lanzar alertas pedagógicas globales por el Event Bus.
+                </p>
+              </div>
+            </RevealEl>
           </div>
         </div>
       </section>
 
-      {/* IMAGES SECTION: NOSOTROS / CAMPUS */}
+      {/* ═══════════════════════════════════════════
+          IMAGES SECTION — scroll reveal
+      ═══════════════════════════════════════════ */}
       <section className="relative py-24 bg-black border-t border-white/5">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-6">
-          <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
-            <img src="/images/nosotros.png" alt="Nosotros" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 p-10 pointer-events-none">
-              <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-4">
-                <span className="w-8 h-px bg-white/30"></span>Quiénes Somos
-              </span>
-              <h3 className="text-4xl font-extrabold text-white mb-4">Nuestra Filosofía</h3>
-              <p className="text-white/60 max-w-sm">
-                Formamos estudiantes con valores sólidos y excelencia académica, preparados para liderar en un mundo digital.
-              </p>
+
+          {/* Imagen izquierda — entra desde la izquierda */}
+          <RevealEl from="left" distance={60} threshold={0.1}>
+            <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
+              <img src="/images/nosotros.png" alt="Nosotros" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 p-10 pointer-events-none">
+                <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-4">
+                  <span className="w-8 h-px bg-white/30"></span>Quiénes Somos
+                </span>
+                <h3 className="text-4xl font-extrabold text-white mb-4">Nuestra Filosofía</h3>
+                <p className="text-white/60 max-w-sm">
+                  Formamos estudiantes con valores sólidos y excelencia académica, preparados para liderar en un mundo digital.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
-            <img src="/images/campus.png" alt="Campus" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 p-10 pointer-events-none">
-              <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-4">
-                <span className="w-8 h-px bg-white/30"></span>Instalaciones
-              </span>
-              <h3 className="text-4xl font-extrabold text-white mb-4">Campus de Vanguardia</h3>
-              <p className="text-white/60 max-w-sm">
-                Espacios diseñados para potenciar el aprendizaje colaborativo, la innovación y el desarrollo deportivo.
-              </p>
+          </RevealEl>
+
+          {/* Imagen derecha — entra desde la derecha */}
+          <RevealEl from="right" distance={60} delay={150} threshold={0.1}>
+            <div className="relative group overflow-hidden rounded-2xl h-[400px] lg:h-[500px]">
+              <img src="/images/campus.png" alt="Campus" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 p-10 pointer-events-none">
+                <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-4">
+                  <span className="w-8 h-px bg-white/30"></span>Instalaciones
+                </span>
+                <h3 className="text-4xl font-extrabold text-white mb-4">Campus de Vanguardia</h3>
+                <p className="text-white/60 max-w-sm">
+                  Espacios diseñados para potenciar el aprendizaje colaborativo, la innovación y el desarrollo deportivo.
+                </p>
+              </div>
             </div>
-          </div>
+          </RevealEl>
         </div>
       </section>
 
-      {/* VIDA ESCOLAR SECONDARY VIDEO SECTION */}
+      {/* ═══════════════════════════════════════════
+          VIDA ESCOLAR VIDEO SECTION — scroll reveal
+      ═══════════════════════════════════════════ */}
       <section className="relative py-32 lg:py-40 flex flex-col justify-center items-start overflow-hidden bg-black border-t border-white/5">
         <div className="absolute inset-0 z-0">
           <video autoPlay muted loop playsInline preload="auto" poster="/school-secondary-poster.jpg" className="w-full h-full object-cover object-center opacity-[0.35]">
@@ -244,60 +333,80 @@ export default function Landing() {
         
         <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12">
           <div className="lg:max-w-[60%]">
-            <div className="mb-6">
-              <span className="inline-flex items-center gap-3 text-sm font-mono text-yellow-500">
-                <span className="w-8 h-px bg-yellow-600"></span>Formación Integral
-              </span>
-            </div>
-            <h2 className="text-left text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[0.95] tracking-tight text-white mb-8">
-              <span className="block">Mucho más que</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-200 to-blue-800">
-                solo clases académicas.
-              </span>
-            </h2>
-            <p className="text-xl text-slate-400 max-w-xl leading-relaxed mb-10">
-              Vive la experiencia de un ecosistema escolar donde la tecnología, el arte y el deporte se unen para formar los líderes del mañana.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/admisiones" className="px-8 py-4 bg-blue-800 text-white rounded-full font-bold transition-transform hover:scale-105 hover:bg-blue-900 shadow-[0_0_20px_rgba(30,58,138,0.4)]">
-                Unirse a la familia
-              </Link>
-            </div>
+            <RevealEl from="bottom" distance={40} threshold={0.1}>
+              <div className="mb-6">
+                <span className="inline-flex items-center gap-3 text-sm font-mono text-yellow-500">
+                  <span className="w-8 h-px bg-yellow-600"></span>Formación Integral
+                </span>
+              </div>
+              <h2 className="text-left text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[0.95] tracking-tight text-white mb-8">
+                <span className="block">Mucho más que</span>
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-200 to-blue-800">
+                  solo clases académicas.
+                </span>
+              </h2>
+            </RevealEl>
+
+            <RevealEl from="bottom" distance={30} delay={200} threshold={0.1}>
+              <p className="text-xl text-slate-400 max-w-xl leading-relaxed mb-10">
+                Vive la experiencia de un ecosistema escolar donde la tecnología, el arte y el deporte se unen para formar los líderes del mañana.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Link to="/admisiones" className="px-8 py-4 bg-blue-800 text-white rounded-full font-bold transition-transform hover:scale-105 hover:bg-blue-900 shadow-[0_0_20px_rgba(30,58,138,0.4)]">
+                  Unirse a la familia
+                </Link>
+              </div>
+            </RevealEl>
           </div>
         </div>
       </section>
 
-      {/* METRICS SECTION */}
+      {/* ═══════════════════════════════════════════
+          METRICS SECTION — scroll reveal
+      ═══════════════════════════════════════════ */}
       <section className="relative py-32 bg-black border-t border-white/5">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <div className="mb-20">
-            <div className="flex items-center gap-4 mb-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-blue-900/40 border border-blue-800/50 text-blue-300 text-xs font-mono rounded">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                SISTEMA LIVE
-              </span>
-            </div>
-            <h2 className="text-5xl md:text-7xl lg:text-[100px] font-extrabold tracking-tight leading-[0.95] text-white">
-              Trazabilidad<br/><span className="text-white/30">en tiempo real.</span>
-            </h2>
-          </div>
 
+          {/* Título */}
+          <RevealEl from="bottom" distance={50} threshold={0.08}>
+            <div className="mb-20">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="flex items-center gap-2 px-3 py-1 bg-blue-900/40 border border-blue-800/50 text-blue-300 text-xs font-mono rounded">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  SISTEMA LIVE
+                </span>
+              </div>
+              <h2 className="text-5xl md:text-7xl lg:text-[100px] font-extrabold tracking-tight leading-[0.95] text-white">
+                Trazabilidad<br/><span className="text-white/30">en tiempo real.</span>
+              </h2>
+            </div>
+          </RevealEl>
+
+          {/* Cards métricas con stagger */}
           <div className="grid lg:grid-cols-3 gap-6">
-            <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12">
-              <div className="text-sm font-mono text-white/40 mb-2">MEMORIA COMPARTIDA</div>
-              <div className="text-5xl font-bold text-white mb-6">Estado Central</div>
-              <p className="text-slate-400">Un único Single Source of Truth para todos los agentes, evitando alucinaciones o datos desincronizados.</p>
-            </div>
-            <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12">
-              <div className="text-sm font-mono text-white/40 mb-2">TELEMETRÍA LANGSMITH</div>
-              <div className="text-5xl font-bold text-white mb-6">Doble Proveedor</div>
-              <p className="text-slate-400">Enrutamiento inteligente. Groq para tareas ligeras a 800 t/s, Google Gemini AI Studio para razonamiento profundo.</p>
-            </div>
-            <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12">
-              <div className="text-sm font-mono text-white/40 mb-2">CACHÉ SEMÁNTICA</div>
-              <div className="text-5xl font-bold text-white mb-6">Redis Cache</div>
-              <p className="text-slate-400">Respuestas frecuentes oxidadas en RAM, anulando el costo y bajando la latencia a cero milisegundos.</p>
-            </div>
+            <RevealEl from="bottom" distance={50} delay={0} threshold={0.1}>
+              <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
+                <div className="text-sm font-mono text-white/40 mb-2">MEMORIA COMPARTIDA</div>
+                <div className="text-5xl font-bold text-white mb-6">Estado Central</div>
+                <p className="text-slate-400">Un único Single Source of Truth para todos los agentes, evitando alucinaciones o datos desincronizados.</p>
+              </div>
+            </RevealEl>
+
+            <RevealEl from="bottom" distance={50} delay={150} threshold={0.1}>
+              <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
+                <div className="text-sm font-mono text-white/40 mb-2">TELEMETRÍA LANGSMITH</div>
+                <div className="text-5xl font-bold text-white mb-6">Doble Proveedor</div>
+                <p className="text-slate-400">Enrutamiento inteligente. Groq para tareas ligeras a 800 t/s, Google Gemini AI Studio para razonamiento profundo.</p>
+              </div>
+            </RevealEl>
+
+            <RevealEl from="bottom" distance={50} delay={300} threshold={0.1}>
+              <div className="bg-white/[0.02] border border-white/10 p-10 lg:p-12 h-full hover:border-white/20 transition-colors">
+                <div className="text-sm font-mono text-white/40 mb-2">CACHÉ SEMÁNTICA</div>
+                <div className="text-5xl font-bold text-white mb-6">Redis Cache</div>
+                <p className="text-slate-400">Respuestas frecuentes oxidadas en RAM, anulando el costo y bajando la latencia a cero milisegundos.</p>
+              </div>
+            </RevealEl>
           </div>
         </div>
       </section>
