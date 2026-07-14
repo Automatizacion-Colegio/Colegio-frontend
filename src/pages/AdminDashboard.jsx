@@ -205,6 +205,8 @@ export default function AdminDashboard() {
   })
   const [docentes, setDocentes] = useState([])
   const [users, setUsers] = useState([])
+  const [rrhhFilterNivel, setRrhhFilterNivel] = useState('')
+  const [rrhhSearchQuery, setRrhhSearchQuery] = useState('')
   const [cursos, setCursos] = useState([])
   const [historialCitas, setHistorialCitas] = useState([])
   const [cajasHistorial, setCajasHistorial] = useState([])
@@ -883,9 +885,60 @@ export default function AdminDashboard() {
 
                 <SectionTitle>Usuarios del Sistema</SectionTitle>
                 <Card noPad>
-                  {users.length === 0
-                    ? <p style={{ padding: 20, color: C.textMuted, fontSize: 13 }}>No hay usuarios registrados.</p>
-                    : (
+                  <div style={{ padding: '16px 20px', display: 'flex', gap: 12, borderBottom: `1px solid ${C.border}`, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select
+                      value={rrhhFilterNivel}
+                      onChange={e => setRrhhFilterNivel(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, color: C.textPrimary, fontSize: 13, minWidth: 200 }}
+                    >
+                      <option value="">-- Selecciona Nivel para ver Personal --</option>
+                      <option value="PRIMARIA">Docentes - Primaria</option>
+                      <option value="SECUNDARIA">Docentes - Secundaria</option>
+                      <option value="ADMINISTRATIVO">Personal Administrativo (Psicólogo/Secretario)</option>
+                    </select>
+                    
+                    <Input 
+                      placeholder="Buscar por nombre o curso..." 
+                      value={rrhhSearchQuery}
+                      onChange={e => setRrhhSearchQuery(e.target.value)}
+                      style={{ minWidth: 250, margin: 0 }}
+                    />
+                  </div>
+
+                  {(() => {
+                    if (rrhhFilterNivel === '') {
+                      return (
+                        <div style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>
+                          <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+                          <div style={{ fontSize: 14, fontWeight: 500 }}>Selecciona un nivel en el menú desplegable superior</div>
+                          <div style={{ fontSize: 12, marginTop: 4 }}>Para proteger la carga visual, el personal solo se lista por categorías.</div>
+                        </div>
+                      )
+                    }
+
+                    const filteredUsers = users.filter(u => {
+                      // Filtrar por nivel
+                      if (rrhhFilterNivel === 'ADMINISTRATIVO') {
+                        if (u.role === 'DOCENTE') return false;
+                      } else {
+                        if (u.role !== 'DOCENTE' || u.nivel_asignado !== rrhhFilterNivel) return false;
+                      }
+                      
+                      // Filtrar por texto (nombre o curso)
+                      if (rrhhSearchQuery) {
+                        const q = rrhhSearchQuery.toLowerCase();
+                        const nameMatch = u.username.toLowerCase().includes(q);
+                        const cursoMatch = u.especializaciones?.some(e => e.curso_nombre.toLowerCase().includes(q));
+                        return nameMatch || cursoMatch;
+                      }
+                      return true;
+                    });
+
+                    if (filteredUsers.length === 0) {
+                      return <p style={{ padding: 20, color: C.textMuted, fontSize: 13 }}>No se encontraron usuarios con esos filtros.</p>;
+                    }
+
+                    return (
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                           <thead>
@@ -896,7 +949,7 @@ export default function AdminDashboard() {
                             </tr>
                           </thead>
                           <tbody>
-                            {users.map((u, idx) => {
+                            {filteredUsers.map((u, idx) => {
                               const rolColor = { DOCENTE: C.accent, PSICOLOGO: '#a78bfa', SECRETARIO: C.warnText }[u.role] || C.textSec
                               const rolVariant = { DOCENTE: 'accent', PSICOLOGO: 'warn', SECRETARIO: 'warn' }[u.role] || 'neutral'
                               return (
@@ -945,7 +998,7 @@ export default function AdminDashboard() {
                         </table>
                       </div>
                     )
-                  }
+                  })()}
                 </Card>
               </div>
             )}

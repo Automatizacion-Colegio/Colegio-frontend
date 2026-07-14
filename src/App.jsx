@@ -39,6 +39,26 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    // Verificación periódica del token (cada 5 segundos)
+    // Si la cuenta es suspendida por el admin, este ping fallará (401/403)
+    // y el interceptor global cerrará la sesión inmediatamente sin F5.
+    const interval = setInterval(() => {
+      const token = useAuthStore.getState().token;
+      if (token) {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/verify`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).catch(() => {
+          // Si hay error de red, ignoramos. El interceptor de fetch ya maneja 401/403.
+        });
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <BrowserRouter>
       <ChatWidget />
