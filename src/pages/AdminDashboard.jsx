@@ -616,7 +616,7 @@ export default function AdminDashboard() {
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '32px', boxSizing: 'border-box' }}>
           {/* ── KPI METRICS ROW ─────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
             <MetricCard
               label="Total Alumnos"
               value={Object.keys(state?.enrolled_students || {}).length}
