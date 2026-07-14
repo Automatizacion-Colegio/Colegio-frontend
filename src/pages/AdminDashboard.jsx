@@ -616,7 +616,7 @@ export default function AdminDashboard() {
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '32px', boxSizing: 'border-box' }}>
           {/* ── KPI METRICS ROW ─────────────────────────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, marginBottom: 32 }}>
             <MetricCard
               label="Total Alumnos"
               value={Object.keys(state?.enrolled_students || {}).length}
@@ -735,7 +735,7 @@ export default function AdminDashboard() {
 
             {/* ── CONFIGURACIÓN ─────────────────────────────────── */}
             {activeTab === 'configuracion' && (
-              <div style={{ maxWidth: 560 }}>
+              <div style={{ maxWidth: 640, margin: '0 auto' }}>
                 <SectionTitle sub="Administra los parámetros globales del sistema.">Configuración General</SectionTitle>
                 <form onSubmit={handleSaveConfig}>
                   <Card>
@@ -771,9 +771,10 @@ export default function AdminDashboard() {
 
             {/* ── PERSONAL ──────────────────────────────────────── */}
             {activeTab === 'personal' && (
-              <div style={{ maxWidth: 760 }}>
-                <SectionTitle sub="Crea cuentas de acceso para el cuerpo docente y psicológico.">Registro de Personal</SectionTitle>
-                <Card style={{ marginBottom: 24 }}>
+              <div style={{ width: '100%' }}>
+                <div style={{ maxWidth: 760, margin: '0 auto 32px' }}>
+                  <SectionTitle sub="Crea cuentas de acceso para el cuerpo docente y psicológico.">Registro de Personal</SectionTitle>
+                  <Card>
                   <form onSubmit={handleCreateUser}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       <FieldGroup label="Nombre de Usuario (Login)">
@@ -854,6 +855,7 @@ export default function AdminDashboard() {
                     </Btn>
                   </form>
                 </Card>
+                </div>
 
                 <SectionTitle>Usuarios del Sistema</SectionTitle>
                 <Card noPad>
@@ -927,7 +929,7 @@ export default function AdminDashboard() {
             {/* ── ACADÉMICO ─────────────────────────────────────── */}
             {activeTab === 'academico' && (
               <ErrorBoundary>
-                <div style={{ maxWidth: 900 }}>
+                <div style={{ width: '100%' }}>
                   {/* Horarios */}
                   <SectionTitle sub="Genera la grilla horaria semanal para cada sección.">Gestión de Horarios</SectionTitle>
                   <Card style={{ marginBottom: 28 }}>
@@ -1298,25 +1300,7 @@ export default function AdminDashboard() {
                   ) : <p style={{ color: C.textMuted, fontSize: 13 }}>Cargando métricas…</p>}
                 </div>
 
-                {/* Raw JSON */}
-                <div>
-                  <SectionTitle>Monitor de Memoria (Raw JSON)</SectionTitle>
-                  <div style={{ background: '#0d1117', border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', height: 500, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ height: 34, background: '#161b22', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 8 }}>
-                      {['#ff5f56','#ffbd2e','#27c93f'].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
-                      <span style={{ marginLeft: 8, fontSize: 11, fontFamily: 'monospace', color: C.textMuted }}>school_unified_db.json</span>
-                    </div>
-                    <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
-                      <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#6bcf9a', margin: 0 }}>
-                        {state ? JSON.stringify(state, null, 2).split('\n').map((l, i) => (
-                          <div key={i} style={{ paddingLeft: 8 }}>
-                            <span style={{ color: C.textMuted, userSelect: 'none', marginRight: 12, fontSize: 10 }}>{i+1}</span>{l}
-                          </div>
-                        )) : 'Cargando…'}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             )}
 
