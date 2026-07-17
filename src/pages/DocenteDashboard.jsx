@@ -471,7 +471,7 @@ export default function DocenteDashboard() {
           </div>
         )}
             {/* ============================= SÍLABO CURRICULAR ============================= */}
-        {activeTab === 'silabo' && (
+        {activeTab === 'silabo' && cursos.length > 0 && (
           <div className="animate-fade-in-up space-y-6">
             {/* Header + selector de curso */}
             <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-lg">
