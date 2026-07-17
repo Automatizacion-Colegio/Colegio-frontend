@@ -496,7 +496,7 @@ export default function SecretarioDashboard() {
 
                       <div className="col-span-2">
                         <label className="block text-xs text-slate-400 mb-1">Concepto</label>
-                        <input required disabled={estadoCaja !== 'Abierta'} type="text" value={txForm.concepto} onChange={e=>setTxForm({...txForm, concepto: e.target.value})} placeholder="Ej: Pensión Marzo - Alumno Juan Pérez" className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none disabled:opacity-50" />
+                        <input required disabled={estadoCaja !== 'Abierta'} type="text" value={txForm.concepto} onChange={e=>setTxForm({...txForm, concepto: e.target.value})} placeholder="Ej: Matrícula 2026 - Alumno Juan Pérez" className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none disabled:opacity-50" />
                       </div>
                       <div className="col-span-2 flex justify-end mt-2">
                         <button disabled={estadoCaja !== 'Abierta'} type="submit" className="px-8 py-3 bg-yellow-600 text-slate-950 rounded-xl font-bold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(202,138,4,0.3)]">
