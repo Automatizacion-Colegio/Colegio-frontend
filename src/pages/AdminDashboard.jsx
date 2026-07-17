@@ -472,6 +472,28 @@ export default function AdminDashboard() {
     finally { setIsAssigningPrimaria(false) }
   }
 
+  const handleAssignAndSavePrimaria = async () => {
+    setIsAssigningPrimaria(true)
+    setMsg({ text: 'Generando asignación de primaria con IA...', type: 'info' })
+    try {
+      const res1 = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos/asignacion_primaria_ia`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
+      })
+      const data1 = await res1.json()
+      if (data1.tutores && Object.keys(data1.tutores).length > 0) {
+        const res2 = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos/asignacion_inteligente`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ nivel: 'PRIMARIA', primaria_tutores: data1.tutores, primaria_especialistas: data1.especialistas, secundaria_cursos: {} })
+        })
+        if (res2.ok) {
+           alert("Tutores de Primaria asignados exitosamente.")
+           fetchData()
+        }
+      } else { setMsg({ text: 'No se pudo generar asignación', type: 'error' }) }
+    } catch (e) { setMsg({ text: 'Error de conexión', type: 'error' }) }
+    finally { setIsAssigningPrimaria(false) }
+  }
+
   const handleSaveConfig = async (e) => {
     e.preventDefault()
     try {
