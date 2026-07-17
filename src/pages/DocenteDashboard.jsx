@@ -414,9 +414,21 @@ export default function DocenteDashboard() {
           )}
           
           <div className="max-w-[1600px] mx-auto w-full">
-            {!isPrimaria && activeTab !== 'tutoria' && activeTab !== 'horario' && activeTab !== 'planificador' && activeTab !== 'corrector' && activeTab !== 'generador_examen' && activeTab !== 'silabo' && cursos.length > 0 && (
-          <div className="mb-6 flex gap-4 p-4 bg-slate-900 border border-white/10 rounded-2xl items-end shadow-lg animate-fade-in-up">
-            <div className="flex-1">
+            {cursos.length === 0 && (activeTab === 'asistencia' || activeTab === 'notas' || activeTab === 'silabo' || activeTab === 'planificador') && (
+              <div className="flex flex-col items-center justify-center py-20 bg-slate-900 border border-white/10 rounded-3xl shadow-lg mt-8">
+                <div className="p-4 bg-yellow-500/20 text-yellow-500 rounded-full mb-4">
+                  <FileSpreadsheet className="w-10 h-10" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">No tienes cursos asignados</h2>
+                <p className="text-slate-400 text-center max-w-md">
+                  Actualmente no tienes ningún curso asignado para el año escolar en curso. Si crees que esto es un error, por favor contacta a la dirección o coordinación académica para que te asignen horarios o tutorías.
+                </p>
+              </div>
+            )}
+
+            {cursos.length > 0 && activeTab !== 'tutoria' && activeTab !== 'horario' && activeTab !== 'planificador' && activeTab !== 'corrector' && activeTab !== 'generador_examen' && activeTab !== 'silabo' && (
+          <div className="mb-6 flex flex-col md:flex-row gap-4 p-4 bg-slate-900 border border-white/10 rounded-2xl items-end shadow-lg animate-fade-in-up">
+            <div className="flex-1 w-full">
               <label className="block text-sm text-slate-400 mb-1">Grado</label>
               <select 
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm outline-none text-white focus:border-blue-500"
@@ -429,10 +441,10 @@ export default function DocenteDashboard() {
                   setCursoActivo(cursos.find(c => c.grado == g && c.seccion == sec[0]))
                 }}
               >
-                {[...new Set(cursos.map(c => c.grado))].map(g => <option key={g} value={g}>{g}° Secundaria</option>)}
+                {[...new Set(cursos.map(c => c.grado))].map(g => <option key={g} value={g}>{g}° {cursos.find(c=>c.grado==g)?.nivel === 'PRIMARIA' ? 'Primaria' : 'Secundaria'}</option>)}
               </select>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <label className="block text-sm text-slate-400 mb-1">Sección</label>
               <select 
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm outline-none text-white focus:border-blue-500"
@@ -446,7 +458,7 @@ export default function DocenteDashboard() {
                 {[...new Set(cursos.filter(c => c.grado == selectedGrado).map(c => c.seccion))].map(s => <option key={s} value={s}>"{s}"</option>)}
               </select>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <label className="block text-sm text-slate-400 mb-1">Curso</label>
               <select 
                 className="w-full bg-slate-950 border border-yellow-500/50 rounded-lg p-2 text-sm outline-none text-yellow-500 focus:border-yellow-400 font-bold"
@@ -747,6 +759,49 @@ export default function DocenteDashboard() {
           </div>
         )}
 
+        {activeTab === 'tutoria' && (
+          <div className="animate-fade-in-up space-y-6 bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-lg mb-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-red-400">
+              <Users className="w-6 h-6" /> Panel de Tutoría y Alertas Tempranas
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-950 p-6 rounded-2xl border border-white/10">
+                <h3 className="text-lg font-bold text-yellow-500 mb-4">Agendar Cita Tripartita</h3>
+                <form onSubmit={handleAgendarCita} className="space-y-4">
+                   <select required value={citaForm.alumno_id} onChange={e => setCitaForm({...citaForm, alumno_id: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:border-yellow-500 focus:outline-none">
+                     <option value="">Seleccione Alumno</option>
+                     {alumnos.map(a => <option key={a.id} value={a.id}>{a.nombres}</option>)}
+                   </select>
+                   <input required type="date" value={citaForm.dia} onChange={e => setCitaForm({...citaForm, dia: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:border-yellow-500 focus:outline-none"/>
+                   <input required type="time" value={citaForm.hora} onChange={e => setCitaForm({...citaForm, hora: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:border-yellow-500 focus:outline-none"/>
+                   <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-sm transition-colors">Agendar Cita Obligatoria</button>
+                </form>
+              </div>
+              <div className="bg-slate-950 p-6 rounded-2xl border border-white/10">
+                <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">Alumnos en Riesgo (IA)</h3>
+                {alumnosRiesgo.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 opacity-50">
+                    <CheckCircle2 className="w-12 h-12 mb-3 text-green-500" />
+                    <p className="text-slate-400 font-medium text-center">No hay alumnos identificados en riesgo por la IA en este momento.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                    {alumnosRiesgo.map((a, i) => (
+                      <div key={i} className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl hover:border-red-500/50 transition-colors">
+                        <p className="font-bold text-red-400 mb-1">{a.nombres}</p>
+                        <p className="text-sm text-slate-300">{a.motivo}</p>
+                        <button onClick={() => setModalObs({open: true, alumno_id: a.id, alumno_nombre: a.nombres})} className="mt-3 text-xs bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-white font-bold transition-colors w-full sm:w-auto shadow-sm">
+                          Añadir Observación a Portal
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'planificador' && (
           <div className="animate-fade-in-up bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-lg mb-8">
             <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">Planificador de Sesiones</h2>
@@ -763,12 +818,43 @@ export default function DocenteDashboard() {
         {activeTab === 'corrector' && (
           <div className="animate-fade-in-up bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-lg">
             <h2 className="text-2xl font-bold mb-6">Evaluación Automática</h2>
-            <form onSubmit={handleGradeExam} className="space-y-4">
-              <input type="file" onChange={e => setOcrFile(e.target.files[0])} className="w-full"/>
-              <textarea value={ocrRubric} onChange={e => setOcrRubric(e.target.value)} placeholder="Rúbrica..." className="w-full bg-slate-950 border border-white/10 p-3 rounded-lg text-white"/>
-              <button type="submit" disabled={isGrading} className="bg-yellow-600 hover:bg-yellow-500 text-slate-900 px-8 py-3 rounded-xl font-bold shadow-sm">{isGrading ? "Procesando..." : "Evaluar Examen"}</button>
+            <form onSubmit={handleGradeExam} className="space-y-6">
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-slate-600 border-dashed rounded-xl cursor-pointer bg-slate-900/50 hover:bg-slate-800 hover:border-yellow-500 transition-all group">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <ScanText className="w-12 h-12 mb-3 text-slate-400 group-hover:text-yellow-500 transition-colors" />
+                  <p className="mb-2 text-sm text-slate-300"><span className="font-bold text-white">Haz clic para subir</span> o arrastra la foto del examen</p>
+                  <span className="mt-2 mb-3 px-6 py-2 bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 rounded-lg text-sm font-medium group-hover:bg-yellow-500 group-hover:text-slate-900 transition-all">
+                    Seleccionar Archivo
+                  </span>
+                  <p className="text-xs text-slate-400 font-mono px-4 py-1 bg-black/40 rounded-full">
+                    {ocrFile ? (
+                      <span className="text-green-400 font-bold">{ocrFile.name}</span>
+                    ) : (
+                      "Formatos: JPG, PNG, PDF"
+                    )}
+                  </p>
+                </div>
+                <input type="file" className="hidden" onChange={e => setOcrFile(e.target.files[0])} accept="image/*,.pdf" />
+              </label>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Rúbrica de Corrección Especializada</label>
+                <textarea value={ocrRubric} onChange={e => setOcrRubric(e.target.value)} placeholder="Ej: Restar 1 punto por cada falta ortográfica. Considerar correcto si menciona 'Revolución' aunque no de la fecha exacta..." className="w-full bg-slate-950 border border-slate-700 p-4 rounded-xl text-white h-32 focus:border-yellow-500 focus:outline-none"/>
+              </div>
+              <button type="submit" disabled={isGrading} className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-900 px-8 py-4 rounded-xl font-bold shadow-sm transition-colors text-lg flex justify-center items-center gap-2">
+                {isGrading ? (
+                  <><div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Procesando con IA...</>
+                ) : (
+                  <><Sparkles className="w-5 h-5" /> Evaluar Examen Automáticamente</>
+                )}
+              </button>
             </form>
-            {ocrResult && <div className="mt-6 bg-slate-950 border border-white/10 p-4 rounded-xl">{ocrResult.grading.nota_sugerida}</div>}
+            {ocrResult && (
+              <div className="mt-8 bg-slate-950 border border-white/10 p-6 rounded-2xl shadow-inner">
+                <h3 className="font-bold text-xl text-yellow-500 mb-4 flex items-center gap-2"><ScanText className="w-6 h-6"/> Resultado de Evaluación</h3>
+                <div className="whitespace-pre-wrap text-slate-300 leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5 font-mono text-sm">{ocrResult.grading.nota_sugerida}</div>
+              </div>
+            )}
           </div>
         )}
         

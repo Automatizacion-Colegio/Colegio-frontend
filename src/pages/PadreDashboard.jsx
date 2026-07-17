@@ -394,7 +394,7 @@ export default function PadreDashboard() {
                     {tutorResponse && (
                       <div className="bg-slate-950 p-6 rounded-2xl border border-white/10">
                         <h3 className="font-bold text-yellow-500 mb-3 flex items-center gap-2"><GraduationCap className="w-5 h-5" /> Respuesta:</h3>
-                        <p className="text-slate-300">{tutorResponse}</p>
+                        <div className="text-slate-300 whitespace-pre-wrap leading-relaxed">{tutorResponse}</div>
                       </div>
                     )}
                   </div>
@@ -411,7 +411,6 @@ export default function PadreDashboard() {
                     ))}
                   </div>
                 )}
-              </div>
 
                 {activeTab === 'certificados' && (
                   <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-xl animate-fade-in-up">
@@ -470,6 +469,7 @@ export default function PadreDashboard() {
                     )}
                   </div>
                 )}
+              </div>
 
               <div className="space-y-8">
                 <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-xl">

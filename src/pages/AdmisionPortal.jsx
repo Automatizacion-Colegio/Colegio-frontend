@@ -76,6 +76,13 @@ export default function AdmisionPortal() {
           promedio: parseFloat(formData.promedio)
         })
       })
+      if (!res.ok) {
+        let errorMsg = 'Error en el servidor al procesar admisión.';
+        try { const errData = await res.json(); errorMsg = errData.detail || errorMsg; } catch (e) {}
+        alert(errorMsg);
+        setLoading(false);
+        return;
+      }
       const data = await res.json()
       setResult(data)
     } catch (err) {
@@ -96,10 +103,17 @@ export default function AdmisionPortal() {
           hora: selectedCita.hora
         })
       })
+      if (!res.ok) {
+        let errorMsg = 'Error al agendar la cita.';
+        try { const errData = await res.json(); errorMsg = errData.detail || errorMsg; } catch (e) {}
+        alert(errorMsg);
+        setAgendando(false);
+        return;
+      }
       const data = await res.json()
       setResult({ status: 'agendado', codigo_obs: data.codigo_obs, mensaje: data.mensaje })
     } catch (err) {
-      alert("Error al agendar.")
+      alert("Error de conexión al agendar.")
     }
     setAgendando(false)
   }
