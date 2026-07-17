@@ -255,24 +255,35 @@ export default function AdminDashboard() {
   const [gradosSeleccionados, setGradosSeleccionados] = useState([1,2,3,4,5])
 
   const fetchData = () => {
+    const handleList = (setter) => (res) => {
+      if (res.status === 401) { logout(); return res.json(); }
+      return res.json().then(data => {
+        if (data && data.detail === "Could not validate credentials") { logout(); return; }
+        setter(Array.isArray(data) ? data : []);
+      }).catch(() => setter([]))
+    };
+
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/telemetry`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setTelemetry)
+      .then(res => res.json()).then(setTelemetry).catch(() => {})
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/state`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setState)
+      .then(res => res.json()).then(setState).catch(() => {})
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/docentes`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setDocentes)
+      .then(handleList(setDocentes))
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/cursos_list`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setCursos)
+      .then(handleList(setCursos))
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/citas_historial`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setHistorialCitas)
+      .then(handleList(setHistorialCitas))
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/tutores_asignados`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(data => setTutoresAsignados(data.tutores || []))
+      .then(res => {
+        if (res.status === 401) { logout(); return; }
+        return res.json().then(data => setTutoresAsignados(data.tutores || []))
+      }).catch(() => setTutoresAsignados([]))
     fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/admin/auditoria_cajas`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setCajasHistorial)
+      .then(handleList(setCajasHistorial))
     fetch(`${import.meta.env.VITE_API_URL}/api/config`)
       .then(res => res.json()).then(setSysConfig).catch(console.error)
     fetch(`${import.meta.env.VITE_API_URL}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(res => res.json()).then(setUsers)
+      .then(handleList(setUsers))
   }
 
   useEffect(() => {
