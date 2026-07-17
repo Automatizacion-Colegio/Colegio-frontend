@@ -194,7 +194,9 @@ export default function AdminDashboard() {
   const [horarioWarnings, setHorarioWarnings] = useState([])       // advertencias del timetabler
   const [tutorForm, setTutorForm] = useState({ nivel: 'SECUNDARIA', grado: '1', seccion: 'A', docente_id: '' })
   const [tutoresAsignados, setTutoresAsignados] = useState([])
-  
+  const [isGenerandoPrimaria, setIsGenerandoPrimaria] = useState(false)
+  const [isGenerandoSecundaria, setIsGenerandoSecundaria] = useState(false)
+  const [estadoFlujo, setEstadoFlujo] = useState(null)
   const [asignacionNivel, setAsignacionNivel] = useState('PRIMARIA')
   const [primariaTutores, setPrimariaTutores] = useState({})
   const [primariaEspeciales, setPrimariaEspeciales] = useState({ 'Inglés': [], 'Educación Física': [], 'Religión': [] })
@@ -203,6 +205,22 @@ export default function AdminDashboard() {
     'Desarrollo Personal, Ciudadanía y Cívica (DPCC)': [], 'Inglés': [], 'Educación para el Trabajo (EPT)': [],
     'Arte y Cultura': [], 'Educación Física': [], 'Religión': []
   })
+  const [secundariaTutores, setSecundariaTutores] = useState({})
+
+
+  const handleEliminarTutor = async (id) => {
+    if (!confirm("¿Eliminar este tutor asignado?")) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/tutores/${id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setMsg({ text: 'Tutor eliminado', type: 'success' })
+        fetchData();
+      }
+    } catch(err) { setMsg({ text: 'Error eliminando tutor', type: 'error' }) }
+  }
+  
   const [docentes, setDocentes] = useState([])
   const [users, setUsers] = useState([])
   const [rrhhFilterNivel, setRrhhFilterNivel] = useState('')
@@ -220,7 +238,7 @@ export default function AdminDashboard() {
   const [isMatching, setIsMatching] = useState(false)
   const [matchResult, setMatchResult] = useState(null)
 
-  const [sysConfig, setSysConfig] = useState({ primaria: 500, secundaria: 700, cupos_aula_primaria: 30, cupos_aula_secundaria: 30 })
+  const [sysConfig, setSysConfig] = useState({ primaria: 500, secundaria: 700, cupos_aula_primaria: 30, cupos_aula_secundaria: 30, precio_recuperacion_primaria: 0, precio_recuperacion_secundaria: 0 })
 
   const [silaboGenNivel, setSilaboGenNivel] = useState('PRIMARIA')
   const [silaboGenGrado, setSilaboGenGrado] = useState(1)
@@ -231,6 +249,7 @@ export default function AdminDashboard() {
   const [silaboGenTodosResult, setSilaboGenTodosResult] = useState(null)
 
   const [showCursoModal, setShowCursoModal] = useState(false)
+  const [cierreResult, setCierreResult] = useState(null)
   const [cursoForm, setCursoForm] = useState({ nombre: '', nivel: 'SECUNDARIA' })
   const GRADOS = { PRIMARIA: [1,2,3,4,5,6], SECUNDARIA: [1,2,3,4,5] }
   const [gradosSeleccionados, setGradosSeleccionados] = useState([1,2,3,4,5])
@@ -261,6 +280,9 @@ export default function AdminDashboard() {
     const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
   }, [token])
+  
+  // Cálculo del total combinado de aulas faltantes para la tarjeta principal (RRHH)
+  const faltanAulas = estadoFlujo ? estadoFlujo.primaria.aulas_sin_tutor.length + estadoFlujo.secundaria.aulas_sin_tutor.length : 0;
 
   // Cargar cursos disponibles para el multi-select de especialización
   useEffect(() => {
@@ -351,6 +373,8 @@ export default function AdminDashboard() {
   const handleGenerarHorarios = async (targetNivel) => {
     if (!confirm(`Esto regenerará y reemplazará todos los horarios para ${targetNivel}. ¿Proceder?`)) return;
     setHorarioWarnings([])
+    if (targetNivel === 'PRIMARIA') setIsGenerandoPrimaria(true)
+    if (targetNivel === 'SECUNDARIA') setIsGenerandoSecundaria(true)
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/generar_horarios?nivel=${targetNivel}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }
@@ -362,8 +386,12 @@ export default function AdminDashboard() {
       const estado = data.estado === 'OK' ? 'sin conflictos' : `con ${data.bloques_sin_docente} bloque(s) sin docente`
       setMsg({ text: `Horario de ${targetNivel} generado ${estado}.`, type: data.estado === 'OK' ? 'success' : 'warn' })
       fetchHorario()
+      fetchData()
     } catch(err) {
       setMsg({ text: err.message || 'No se pudo generar el horario.', type: 'error' })
+    } finally {
+      if (targetNivel === 'PRIMARIA') setIsGenerandoPrimaria(false)
+      if (targetNivel === 'SECUNDARIA') setIsGenerandoSecundaria(false)
     }
   }
 
@@ -388,6 +416,13 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       setBiResponse(data.response || "No se obtuvo respuesta.");
+      const payload = {
+        nivel: asignacionNivel,
+        primaria_tutores: primariaTutores,
+        primaria_especialistas: primariaEspeciales,
+        secundaria_cursos: secundariaCursos,
+        secundaria_tutores: secundariaTutores,
+      }
     } catch (e) {
       setBiResponse("Error al consultar el agente de base de datos.");
     } finally { setLoadingBi(false); }
@@ -429,7 +464,9 @@ export default function AdminDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 
           primaria: parseFloat(sysConfig.primaria), secundaria: parseFloat(sysConfig.secundaria),
-          cupos_aula_primaria: parseInt(sysConfig.cupos_aula_primaria), cupos_aula_secundaria: parseInt(sysConfig.cupos_aula_secundaria)
+          cupos_aula_primaria: parseInt(sysConfig.cupos_aula_primaria), cupos_aula_secundaria: parseInt(sysConfig.cupos_aula_secundaria),
+          precio_recuperacion_primaria: parseFloat(sysConfig.precio_recuperacion_primaria || 0),
+          precio_recuperacion_secundaria: parseFloat(sysConfig.precio_recuperacion_secundaria || 0)
         })
       })
       const data = await res.json()
@@ -643,9 +680,13 @@ export default function AdminDashboard() {
             <MetricCard
               label="Tutores Asignados"
               value={tutoresAsignados.length}
-              sub="asignaciones activas"
+              sub={estadoFlujo && faltanAulas > 0 ? (
+                <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setActiveTab('asignacion_docente')}>
+                  Faltan {faltanAulas} aulas
+                </span>
+              ) : "asignaciones activas"}
               icon={<UserCheck size={20} />}
-              color="#a78bfa"
+              color={estadoFlujo && faltanAulas > 0 ? C.warnText : "#a78bfa"}
             />
           </div>
           {msg && <Alert variant={msg.type === 'success' ? 'success' : 'error'}>{msg.text}</Alert>}
@@ -748,6 +789,16 @@ export default function AdminDashboard() {
                       </FieldGroup>
                       <FieldGroup label="Secundaria (S/)">
                         <Input type="number" step="0.1" required value={sysConfig.secundaria} onChange={e => setSysConfig({...sysConfig, secundaria: e.target.value})} />
+                      </FieldGroup>
+                    </div>
+                    <Divider style={{ margin: '0 0 20px' }} />
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costos de Recuperación (Verano)</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                      <FieldGroup label="Recup. Primaria (S/)">
+                        <Input type="number" step="0.1" required value={sysConfig.precio_recuperacion_primaria || 0} onChange={e => setSysConfig({...sysConfig, precio_recuperacion_primaria: e.target.value})} />
+                      </FieldGroup>
+                      <FieldGroup label="Recup. Secundaria (S/)">
+                        <Input type="number" step="0.1" required value={sysConfig.precio_recuperacion_secundaria || 0} onChange={e => setSysConfig({...sysConfig, precio_recuperacion_secundaria: e.target.value})} />
                       </FieldGroup>
                     </div>
                     <Divider style={{ margin: '0 0 20px' }} />
@@ -1010,12 +1061,27 @@ export default function AdminDashboard() {
                   {/* Horarios */}
                   <SectionTitle sub="Genera la grilla horaria semanal para cada sección.">Gestión de Horarios</SectionTitle>
                   <Card style={{ marginBottom: 28 }}>
+                    {estadoFlujo && (
+                      <div style={{ marginBottom: 16, padding: '14px', background: C.surface, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 8 }}>Estado de Prerrequisitos:</div>
+                        <div style={{ fontSize: 13, color: C.textSec, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div>✅ Docentes registrados ({estadoFlujo.docentes_activos})</div>
+                          <div>
+                            {estadoFlujo.primaria.listo_para_generar_horario ? '✅' : '⚠️'} Tutores Primaria ({estadoFlujo.primaria.aulas_con_tutor}/{estadoFlujo.primaria.total_aulas})
+                          </div>
+                          <div>
+                            {estadoFlujo.secundaria.listo_para_generar_horario ? '✅' : '⚠️'} Tutores Secundaria ({estadoFlujo.secundaria.aulas_con_tutor}/{estadoFlujo.secundaria.total_aulas})
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                      <Btn variant="muted" onClick={() => handleGenerarHorarios('PRIMARIA')} style={{ width: '100%', justifyContent: 'center' }}>
-                        <TrendingUp size={14} /> Generar Horario Primaria
+                      <Btn variant="muted" disabled={state?.has_horario_primaria || isGenerandoPrimaria} onClick={() => handleGenerarHorarios('PRIMARIA')} style={{ width: '100%', justifyContent: 'center' }}>
+                        <TrendingUp size={14} /> {isGenerandoPrimaria ? 'Se está generando su horario espere unos segundos...' : state?.has_horario_primaria ? 'Horario Generado' : 'Generar Horario Primaria'}
                       </Btn>
-                      <Btn variant="primary" onClick={() => handleGenerarHorarios('SECUNDARIA')} style={{ width: '100%', justifyContent: 'center' }}>
-                        <TrendingUp size={14} /> Generar Horario Secundaria
+                      <Btn variant="primary" disabled={state?.has_horario_secundaria || isGenerandoSecundaria} onClick={() => handleGenerarHorarios('SECUNDARIA')} style={{ width: '100%', justifyContent: 'center' }}>
+                        <TrendingUp size={14} /> {isGenerandoSecundaria ? 'Se está generando su horario espere unos segundos...' : state?.has_horario_secundaria ? 'Horario Generado' : 'Generar Horario Secundaria'}
                       </Btn>
                     </div>
                     {horarioWarnings.length > 0 && (
@@ -1158,6 +1224,36 @@ export default function AdminDashboard() {
                   </Btn>
                 </div>
 
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle sub="Lista de tutores asignados.">Tutores Asignados</SectionTitle>
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surfaceHigh }}>
+                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Docente</th>
+                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Nivel</th>
+                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Aula</th>
+                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tutoresAsignados.length === 0 ? (
+                          <tr><td colSpan="4" style={{ padding: '16px', textAlign: 'center', color: C.textMuted }}>No hay tutores asignados</td></tr>
+                        ) : tutoresAsignados.map(t => (
+                          <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                            <td style={{ padding: '11px 16px', color: C.textPrimary }}>{t.docente}</td>
+                            <td style={{ padding: '11px 16px', color: C.textSec }}>{t.nivel}</td>
+                            <td style={{ padding: '11px 16px', color: C.textSec }}>{t.grado}° {t.seccion}</td>
+                            <td style={{ padding: '11px 16px' }}>
+                              <Btn size="sm" variant="danger" onClick={() => handleEliminarTutor(t.id)}>Eliminar</Btn>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
                 {/* Level tabs */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: C.surface, padding: 5, borderRadius: 12, width: 'fit-content', border: `1px solid ${C.border}` }}>
                   {['PRIMARIA', 'SECUNDARIA'].map(n => (
@@ -1217,6 +1313,25 @@ export default function AdminDashboard() {
 
                 {asignacionNivel === 'SECUNDARIA' && (
                   <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>Tutores de Aula (Tutoría Principal)</div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: 28 }}>
+                      {[1,2,3,4,5].map(g => ['A','B'].map(s => {
+                        const key = `${g}-${s}`
+                        return (
+                          <Card key={key} style={{ padding: '12px' }}>
+                            <Label style={{ fontSize: 11 }}>{g}° "{s}"</Label>
+                            <Select value={secundariaTutores[key] || ''} onChange={e => setSecundariaTutores({...secundariaTutores, [key]: parseInt(e.target.value) || null})}>
+                              <option value="">Tutor…</option>
+                              {[...docentesPrimaria, ...docentesSecundaria].map(d => <option key={d.id} value={d.id}>{d.username.split(' ')[0]}</option>)}
+                            </Select>
+                          </Card>
+                        )
+                      }))}
+                    </div>
+
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>Especialistas por Curso</div>
                     <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20, padding: '10px 14px', background: C.accentMuted, borderRadius: 8, border: `1px solid ${C.accent}20` }}>
                       Selecciona múltiples docentes por materia. El algoritmo dividirá las horas equitativamente.
                     </div>
@@ -1414,6 +1529,15 @@ export default function AdminDashboard() {
                   <p style={{ color: C.textSec, fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
                     Al ejecutar el cierre, el sistema calculará el promedio final de cada alumno, determinará aprobados y reprobados, y enviará reportes académicos por correo a los padres.
                   </p>
+                  
+                  {estadoFlujo && estadoFlujo.cierre_escolar && estadoFlujo.cierre_escolar.cursos_sin_notas.length > 0 && (
+                    <div style={{ padding: '12px 16px', background: C.warnBg, border: `1px solid ${C.warnText}40`, borderRadius: 9, fontSize: 13, color: C.warnText, textAlign: 'left', marginBottom: 20 }}>
+                      <strong style={{ display: 'block', marginBottom: 6 }}>Advertencia:</strong> Hay cursos sin ninguna nota registrada. Si ejecutas el cierre, los alumnos en estos cursos tendrán promedio 0 (jalados):
+                      <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                        {estadoFlujo.cierre_escolar.cursos_sin_notas.map(c => <li key={c}>{c}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <div style={{ padding: '12px 16px', background: C.dangerBg, border: `1px solid ${C.danger}40`, borderRadius: 9, fontSize: 12, color: C.dangerText, textAlign: 'left', marginBottom: 24, fontWeight: 600 }}>
                     ⚠ Esta acción es irreversible. Borrará todos los horarios y liberará a todos los tutores.
                   </div>

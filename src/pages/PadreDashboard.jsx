@@ -33,6 +33,8 @@ export default function PadreDashboard() {
   const [pctAsistencia, setPctAsistencia] = useState(0)
   const [citasPendientes, setCitasPendientes] = useState([])
   const [horario, setHorario] = useState([])
+  const [anioEstado, setAnioEstado] = useState(null)
+  const [showPoll, setShowPoll] = useState(false)
 
   // Orientación Vocacional (Secundaria)
   const [vocationalQuery, setVocationalQuery] = useState('')
@@ -43,6 +45,7 @@ export default function PadreDashboard() {
   const [medicalFile, setMedicalFile] = useState(null)
   const [medicalResult, setMedicalResult] = useState(null)
   const [loadingMedical, setLoadingMedical] = useState(false)
+  const [certificados, setCertificados] = useState([])
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/padre/libreta`, { headers: { Authorization: `Bearer ${token}` } })
@@ -52,6 +55,11 @@ export default function PadreDashboard() {
       })
       .then(data => {
         setAlumno(data.alumno)
+    fetch(`${import.meta.env.VITE_API_URL}/api/padre/certificados`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => setCertificados(data || []))
+      .catch(console.error)
+
         setLibreta(data.libreta || [])
         setAlertas(data.alertas_ia || [])
         setObservaciones(data.observaciones || [])
@@ -59,6 +67,10 @@ export default function PadreDashboard() {
         setPctAsistencia(data.porcentaje_inasistencia || 0)
         setCitasPendientes(data.citas_psicologia || [])
         setHorario(data.horario || [])
+        setAnioEstado(data.anio_escolar_estado)
+        if (data.anio_escolar_estado === 'CERRADO' && data.alumno?.estado_continuidad === 'PENDIENTE') {
+          setShowPoll(true)
+        }
       })
       .catch(err => setError(err.message))
   }, [token])
@@ -144,6 +156,26 @@ export default function PadreDashboard() {
     }
   }
 
+  const handleRatificar = async (respuesta) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/padre/ratificar_vacante`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ continuidad: respuesta })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setShowPoll(false)
+        setAlumno({...alumno, estado_continuidad: respuesta === 'SI' ? 'RATIFICADO' : 'NO_CONTINUARA'})
+        alert(data.message)
+      } else {
+        alert(data.detail)
+      }
+    } catch (e) {
+      alert("Error enviando respuesta de ratificación")
+    }
+  }
+
   if (!alumno) return <div className="h-screen flex items-center justify-center bg-slate-950 text-white">Cargando datos del alumno...</div>
 
   const TabButton = ({ id, label, icon }) => (
@@ -177,6 +209,7 @@ export default function PadreDashboard() {
           <TabButton id="asistencia" label="Asistencia" icon={<Calendar className="w-4 h-4" />} />
           <TabButton id="tutor_ia" label="Apoyo Académico" icon={<Bot className="w-4 h-4" />} />
           {!isPrimaria && <TabButton id="vocacional" label="Proyección Vocacional" icon={<GraduationCap className="w-4 h-4" />} />}
+          <TabButton id="certificados" label="Mis Certificados" icon={<FileText className="w-4 h-4" />} />
           <TabButton id="psicologia" label="Seguimiento" icon={<Brain className="w-4 h-4" />} />
         </nav>
         
@@ -380,6 +413,64 @@ export default function PadreDashboard() {
                 )}
               </div>
 
+                {activeTab === 'certificados' && (
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-xl animate-fade-in-up">
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="p-3 bg-yellow-600/20 text-yellow-500 rounded-xl">
+                        <FileText className="w-6 h-6" />
+                      </span>
+                      <h2 className="text-2xl font-bold text-white">Mis Certificados</h2>
+                    </div>
+                    
+                    {certificados.length === 0 ? (
+                      <p className="text-slate-400 italic">No hay certificados disponibles.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {certificados.map((cert) => (
+                          <div key={cert.id} className="bg-slate-950 p-6 rounded-2xl border border-white/10 flex flex-col justify-between hover:border-yellow-600/50 transition-all shadow-md">
+                            <div>
+                              <div className="flex justify-between items-center mb-4">
+                                <span className="px-3 py-1 bg-yellow-600/20 text-yellow-500 rounded-full text-xs font-bold border border-yellow-600/30">
+                                  {cert.anio_escolar}
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                  {new Date(cert.fecha_emision).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <h3 className="text-lg font-bold text-white mb-2">
+                                {cert.tipo === 'MERITO' ? 'Certificado de Mérito' : cert.tipo === 'CONCLUSION_PRIMARIA' ? 'Conclusión de Primaria' : 'Conclusión de Secundaria'}
+                              </h3>
+                              {cert.puesto && (
+                                <p className="text-sm text-slate-400 mb-4">
+                                  Puesto: <strong className="text-yellow-500">{cert.puesto}</strong>
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/padre/certificados/${cert.id}/descargar`, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (!res.ok) throw new Error("Error al descargar");
+                                  const blob = await res.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a'); a.href = url; a.download = `Certificado-${cert.tipo}-${cert.anio_escolar}.pdf`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+                                } catch (e) {
+                                  alert("Hubo un error al descargar el certificado.");
+                                }
+                              }}
+                              className="mt-4 w-full py-2 bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-500 border border-yellow-600/30 rounded-xl font-medium transition-all"
+                            >
+                              Descargar PDF
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               <div className="space-y-8">
                 <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-xl">
                   <h3 className="text-xl font-semibold mb-6 text-yellow-500">Observaciones del Tutor</h3>
@@ -442,7 +533,43 @@ export default function PadreDashboard() {
           </div>
         </div>
       </main>
-      <ChatWidget roleName="Comunicaciones" />
+
+      {/* Modal de Ratificación de Vacante */}
+      {showPoll && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-yellow-500/30 rounded-2xl p-8 max-w-lg w-full text-center shadow-[0_0_50px_rgba(202,138,4,0.1)]">
+            <div className="w-20 h-20 bg-yellow-500/20 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4">Ratificación de Vacante</h2>
+            <p className="text-slate-300 mb-8 text-lg">
+              Estimado padre de familia, el año escolar ha concluido. Para garantizar la reserva del cupo para 
+              el próximo año, necesitamos que confirme si su menor hijo(a) <strong className="text-white">{alumno.nombres}</strong> continuará 
+              sus estudios en la I.E.P. José María Arguedas.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => handleRatificar('SI')}
+                className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl flex items-center gap-2 transition-colors"
+              >
+                <CheckCircle2 className="w-5 h-5" /> Sí, mantendrá su vacante
+              </button>
+              <button 
+                onClick={() => handleRatificar('NO')}
+                className="px-6 py-3 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 rounded-xl flex items-center gap-2 transition-colors"
+              >
+                <XCircle className="w-5 h-5" /> No continuará
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-6">
+              * Nota: De no responder, el sistema asumirá que cede la vacante y entrará al proceso de purga.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ChatWidget Integrado para Padres */}
+      <ChatWidget sessionType="padre" />
     </div>
   )
 }

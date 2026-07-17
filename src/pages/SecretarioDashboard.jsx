@@ -27,6 +27,22 @@ export default function SecretarioDashboard() {
 
   // Admisiones State
   const [admisiones, setAdmisiones] = useState([])
+  
+  // Matricula State
+  const [searchDni, setSearchDni] = useState('')
+  const [matriculaPendiente, setMatriculaPendiente] = useState(null)
+  const [pagoMatriculaForm, setPagoMatriculaForm] = useState({ metodo: 'Efectivo', monto: '' })
+  
+  // Recuperación Vacacional State
+  const [alumnosRecuperacion, setAlumnosRecuperacion] = useState([])
+  const [recuperacionForm, setRecuperacionForm] = useState({
+    alumno_id: '',
+    curso: '',
+    calificacion: '',
+    resultado: 'aprobado',
+    monto_pago: '',
+    metodo_pago: 'Efectivo'
+  })
 
   const fetchAdmisiones = async () => {
     try {
@@ -37,6 +53,123 @@ export default function SecretarioDashboard() {
       setAdmisiones(data)
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  const fetchRecuperacion = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/alumnos/recuperacion`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAlumnosRecuperacion(data)
+      }
+    } catch(e) {
+      console.error(e)
+    }
+  }
+
+  const handleBuscarMatricula = async (e) => {
+    e.preventDefault()
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/matriculas/pendientes?dni=${searchDni}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if(res.ok) {
+        const data = await res.json()
+        setMatriculaPendiente(data)
+        setPagoMatriculaForm(prev => ({ ...prev, monto: data.monto_total || '' }))
+      } else {
+        alert("No se encontró matrícula pendiente para este DNI.")
+        setMatriculaPendiente(null)
+      }
+    } catch(e) {
+      console.error(e)
+    }
+  }
+
+  const handlePagarMatricula = async (e) => {
+    e.preventDefault()
+    if(estadoCaja !== 'Abierta') {
+       alert("Debes abrir la caja primero.")
+       return
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/matricular`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          matricula_id: matriculaPendiente.id,
+          alumno_id: matriculaPendiente.alumno_id,
+          metodo_pago: pagoMatriculaForm.metodo,
+          monto: parseFloat(pagoMatriculaForm.monto)
+        })
+      })
+      if (res.ok) {
+        alert("Matrícula pagada y registrada exitosamente.")
+        setMatriculaPendiente(null)
+        setSearchDni('')
+        fetchCaja()
+      } else {
+        const err = await res.json()
+        alert(err.detail || "Error al registrar la matrícula.")
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleRegistrarRecuperacion = async (e) => {
+    e.preventDefault()
+    if(estadoCaja !== 'Abierta') {
+       alert("Debes abrir la caja primero.")
+       return
+    }
+    if(!recuperacionForm.alumno_id || !recuperacionForm.curso || recuperacionForm.alumno_id === '|') {
+       alert("Selecciona un alumno y curso.")
+       return
+    }
+    try {
+      // The API expects: curso_recuperacion_id, nota, aprobado, metodo_pago, monto_pago
+      // Let's find the curso_id
+      const alumno = alumnosRecuperacion.find(a => a.id === parseInt(recuperacionForm.alumno_id))
+      const cursoData = alumno?.cursos_pendientes.find(c => c.nombre_curso === recuperacionForm.curso)
+      if(!cursoData) {
+         alert("Curso no encontrado en los datos.")
+         return
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/recuperacion/registrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          curso_recuperacion_id: cursoData.curso_recuperacion_id,
+          nota: recuperacionForm.calificacion,
+          aprobado: recuperacionForm.resultado === 'aprobado',
+          metodo_pago: recuperacionForm.metodo_pago,
+          monto_pago: parseFloat(recuperacionForm.monto_pago)
+        })
+      })
+      if (res.ok) {
+        alert("Recuperación registrada exitosamente")
+        setRecuperacionForm({
+          alumno_id: '',
+          curso: '',
+          calificacion: '',
+          resultado: 'aprobado',
+          monto_pago: '',
+          metodo_pago: 'Efectivo'
+        })
+        fetchRecuperacion()
+        fetchCaja()
+      } else {
+        const error = await res.json()
+        alert(error.detail || "Error registrando recuperación")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("Error registrando recuperación")
     }
   }
 
@@ -236,7 +369,8 @@ export default function SecretarioDashboard() {
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-3 mt-2">Menú</p>
           <TabButton id="caja" label="Caja" icon={<Wallet className="w-4 h-4" />} />
           <TabButton id="admisiones" label="Admisiones" icon={<Users className="w-4 h-4" />} />
-
+          <TabButton id="matricula" label="Matrícula Presencial" icon={<CheckCircle className="w-4 h-4" />} />
+          <TabButton id="recuperacion" label="Recuperación Vacacional" icon={<CheckCircle className="w-4 h-4" />} />
         </nav>
         
         <div className="p-4 border-t border-white/10 bg-black/20">
@@ -409,6 +543,152 @@ export default function SecretarioDashboard() {
               </div>
             )}
 
+            {activeTab === 'matricula' && (
+              <div className="animate-fade-in-up space-y-6 max-w-4xl mx-auto">
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
+                  <h2 className="text-xl font-bold mb-6 text-white">Buscar Matrícula Pendiente</h2>
+                  <form onSubmit={handleBuscarMatricula} className="flex gap-4">
+                    <input 
+                      type="text" 
+                      value={searchDni} 
+                      onChange={e => setSearchDni(e.target.value)} 
+                      placeholder="DNI del Alumno" 
+                      className="flex-1 bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" 
+                      required
+                    />
+                    <button type="submit" className="px-6 py-3 bg-yellow-600 text-slate-950 rounded-xl font-bold hover:bg-yellow-500 transition-colors shadow-[0_0_15px_rgba(202,138,4,0.3)]">
+                      Buscar
+                    </button>
+                  </form>
+                </div>
+
+                {matriculaPendiente && (
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
+                    <h3 className="text-lg font-bold text-yellow-500 mb-4">Detalles de Matrícula</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-white">
+                      <p><span className="text-slate-400">Alumno:</span> <span className="font-bold">{matriculaPendiente.alumno_nombre}</span></p>
+                      <p><span className="text-slate-400">Grado:</span> <span className="font-bold">{matriculaPendiente.grado}</span></p>
+                      <p><span className="text-slate-400">Estado:</span> <span className="text-yellow-400 font-bold">{matriculaPendiente.estado_matricula || 'PENDIENTE_PAGO'}</span></p>
+                      <p><span className="text-slate-400">Monto Total:</span> <span className="font-bold text-emerald-400">S/ {matriculaPendiente.monto_total}</span></p>
+                    </div>
+                    
+                    <form onSubmit={handlePagarMatricula} className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
+                      <div className="col-span-2 md:col-span-1">
+                         <label className="block text-xs text-slate-400 mb-1">Método de Pago</label>
+                         <select 
+                           value={pagoMatriculaForm.metodo} 
+                           onChange={e => setPagoMatriculaForm({...pagoMatriculaForm, metodo: e.target.value})}
+                           className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none"
+                         >
+                           <option value="Efectivo">Efectivo</option>
+                           <option value="Yape">Yape / Plin</option>
+                           <option value="Transferencia">Transferencia Bancaria</option>
+                         </select>
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                         <label className="block text-xs text-slate-400 mb-1">Monto a Cobrar (S/)</label>
+                         <input 
+                           type="number" 
+                           step="0.01" 
+                           required
+                           value={pagoMatriculaForm.monto} 
+                           onChange={e => setPagoMatriculaForm({...pagoMatriculaForm, monto: e.target.value})}
+                           className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-emerald-500 outline-none" 
+                           placeholder="Ej. 300.00"
+                         />
+                      </div>
+                      <div className="col-span-2 flex justify-end mt-4">
+                         <button type="submit" disabled={estadoCaja !== 'Abierta'} className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                           Confirmar Matrícula
+                         </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'recuperacion' && (
+              <div className="animate-fade-in-up grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-8 space-y-6">
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
+                    <h2 className="text-xl font-bold mb-6 text-white">Registrar Recuperación Vacacional</h2>
+                    <form onSubmit={handleRegistrarRecuperacion} className="grid grid-cols-2 gap-6">
+                      <div className="col-span-2">
+                        <label className="block text-xs text-slate-400 mb-1">Alumno y Curso Pendiente</label>
+                        <select required value={`${recuperacionForm.alumno_id}|${recuperacionForm.curso}`} onChange={(e) => {
+                          const [id, curso] = e.target.value.split('|')
+                          setRecuperacionForm({...recuperacionForm, alumno_id: id, curso: curso})
+                        }} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none">
+                          <option value="|">Seleccionar Alumno y Curso...</option>
+                          {alumnosRecuperacion.map(al => (
+                            al.cursos_pendientes?.map(cursoData => (
+                              <option key={`${al.id}-${cursoData.nombre_curso}`} value={`${al.id}|${cursoData.nombre_curso}`}>{al.nombre_completo} - {cursoData.nombre_curso}</option>
+                            ))
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Calificación Obtenida</label>
+                        <input required type="number" min="0" max="20" step="0.1" value={recuperacionForm.calificacion} onChange={e=>setRecuperacionForm({...recuperacionForm, calificacion: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Resultado</label>
+                        <select required value={recuperacionForm.resultado} onChange={e=>setRecuperacionForm({...recuperacionForm, resultado: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none">
+                          <option value="aprobado">Aprobado</option>
+                          <option value="jalado">Jalado</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Monto Cobrado (S/)</label>
+                        <input required type="number" step="0.01" value={recuperacionForm.monto_pago} onChange={e=>setRecuperacionForm({...recuperacionForm, monto_pago: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Método de Pago</label>
+                        <select required value={recuperacionForm.metodo_pago} onChange={e=>setRecuperacionForm({...recuperacionForm, metodo_pago: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none">
+                          <option value="Efectivo">Efectivo</option>
+                          <option value="Yape">Yape / Plin</option>
+                          <option value="Transferencia">Transferencia Bancaria</option>
+                        </select>
+                      </div>
+
+                      <div className="col-span-2 flex justify-end mt-4">
+                        <button type="submit" disabled={estadoCaja !== 'Abierta'} className="px-8 py-3 bg-yellow-600 text-slate-950 rounded-xl font-bold hover:bg-yellow-500 transition-colors shadow-[0_0_15px_rgba(202,138,4,0.3)] disabled:opacity-50 disabled:cursor-not-allowed">
+                          Registrar Resultado y Pago
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-4 space-y-6">
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-xl h-full">
+                    <h3 className="font-bold text-slate-200 mb-4 flex items-center gap-2">Alumnos Pendientes</h3>
+                    {alumnosRecuperacion.length === 0 ? (
+                      <p className="text-sm text-slate-500 italic">No hay alumnos pendientes de recuperación.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {alumnosRecuperacion.map(al => (
+                          <div key={al.id} className="p-4 bg-white/5 border border-white/10 rounded-xl">
+                            <p className="font-bold text-sm text-white">{al.nombre_completo}</p>
+                            {al.dni && <p className="text-xs text-slate-400 mt-1">DNI: {al.dni}</p>}
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {al.cursos_pendientes?.map(c => (
+                                <span key={c.curso_recuperacion_id} className="px-2 py-1 bg-red-500/20 text-red-400 rounded-md text-[10px] font-bold uppercase tracking-wider">{c.nombre_curso}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
