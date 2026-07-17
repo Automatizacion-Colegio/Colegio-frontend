@@ -238,7 +238,11 @@ export default function AdminDashboard() {
   const [isMatching, setIsMatching] = useState(false)
   const [matchResult, setMatchResult] = useState(null)
 
-  const [sysConfig, setSysConfig] = useState({ primaria: 500, secundaria: 700, cupos_aula_primaria: 30, cupos_aula_secundaria: 30, precio_recuperacion_primaria: 0, precio_recuperacion_secundaria: 0 })
+  const [sysConfig, setSysConfig] = useState({ 
+    primaria: 500, secundaria: 700, cupos_aula_primaria: 30, cupos_aula_secundaria: 30, 
+    precio_recuperacion_primaria: 0, precio_recuperacion_secundaria: 0,
+    inicio_matricula: '', fin_matricula: '', limite_rematricula: ''
+  })
 
   const [silaboGenNivel, setSilaboGenNivel] = useState('PRIMARIA')
   const [silaboGenGrado, setSilaboGenGrado] = useState(1)
@@ -477,7 +481,10 @@ export default function AdminDashboard() {
           primaria: parseFloat(sysConfig.primaria), secundaria: parseFloat(sysConfig.secundaria),
           cupos_aula_primaria: parseInt(sysConfig.cupos_aula_primaria), cupos_aula_secundaria: parseInt(sysConfig.cupos_aula_secundaria),
           precio_recuperacion_primaria: parseFloat(sysConfig.precio_recuperacion_primaria || 0),
-          precio_recuperacion_secundaria: parseFloat(sysConfig.precio_recuperacion_secundaria || 0)
+          precio_recuperacion_secundaria: parseFloat(sysConfig.precio_recuperacion_secundaria || 0),
+          inicio_matricula: sysConfig.inicio_matricula,
+          fin_matricula: sysConfig.fin_matricula,
+          limite_rematricula: sysConfig.limite_rematricula
         })
       })
       const data = await res.json()
@@ -819,6 +826,19 @@ export default function AdminDashboard() {
                       </FieldGroup>
                       <FieldGroup label="Secundaria (max/sección)">
                         <Input type="number" step="1" required value={sysConfig.cupos_aula_secundaria || 30} onChange={e => setSysConfig({...sysConfig, cupos_aula_secundaria: e.target.value})} />
+                      </FieldGroup>
+                    </div>
+                    <Divider style={{ margin: '0 0 20px' }} />
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fechas del Año Escolar</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+                      <FieldGroup label="Inicio Matrícula">
+                        <Input type="date" value={sysConfig.inicio_matricula || ''} onChange={e => setSysConfig({...sysConfig, inicio_matricula: e.target.value})} />
+                      </FieldGroup>
+                      <FieldGroup label="Fin Matrícula">
+                        <Input type="date" value={sysConfig.fin_matricula || ''} onChange={e => setSysConfig({...sysConfig, fin_matricula: e.target.value})} />
+                      </FieldGroup>
+                      <FieldGroup label="Límite Rematrícula (Morosos)">
+                        <Input type="date" value={sysConfig.limite_rematricula || ''} onChange={e => setSysConfig({...sysConfig, limite_rematricula: e.target.value})} />
                       </FieldGroup>
                     </div>
                     <div style={{ padding: '10px 14px', background: C.surfaceHigh, borderRadius: 8, fontSize: 12, color: C.textSec, marginBottom: 20 }}>
