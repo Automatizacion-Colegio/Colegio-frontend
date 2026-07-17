@@ -543,6 +543,74 @@ export default function SecretarioDashboard() {
               </div>
             )}
 
+            {activeTab === 'admisiones' && (
+              <div className="animate-fade-in-up space-y-6">
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
+                  <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-2"><Users className="w-5 h-5 text-yellow-500" /> Gestión de Admisiones</h2>
+                  
+                  {admisiones.length === 0 ? (
+                    <p className="text-slate-500 italic">No hay expedientes de admisión recientes.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead>
+                          <tr className="border-b border-white/10 text-slate-500">
+                            <th className="pb-3">Expediente</th>
+                            <th className="pb-3">Postulante</th>
+                            <th className="pb-3">Nivel</th>
+                            <th className="pb-3 text-center">Promedio</th>
+                            <th className="pb-3 text-center">Conducta</th>
+                            <th className="pb-3">Estado</th>
+                            <th className="pb-3">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {admisiones.map(adm => (
+                            <tr key={adm.id} className="border-b border-white/5 hover:bg-white/5">
+                              <td className="py-3 text-slate-300 font-mono text-xs">{adm.codigo_est}</td>
+                              <td className="py-3 text-white font-medium">{adm.nombres}</td>
+                              <td className="py-3 text-slate-400">{adm.nivel}</td>
+                              <td className="py-3 text-center text-emerald-400 font-bold">{adm.promedio}</td>
+                              <td className="py-3 text-center text-yellow-400 font-bold">{adm.conducta}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-1 rounded text-xs border ${
+                                  adm.estado_proceso.includes('Rechazado') ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                  adm.estado_proceso.includes('Admitido') || adm.estado_proceso.includes('Matriculado') ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                  'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                }`}>
+                                  {adm.estado_proceso}
+                                </span>
+                              </td>
+                              <td className="py-3">
+                                {adm.estado_proceso === 'Evaluación Superada' ? (
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleCambiarEstadoAdmision(adm.id, 'Admitido (Falta Pago)')}
+                                      className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white rounded transition-colors text-xs font-bold"
+                                    >
+                                      Admitir
+                                    </button>
+                                    <button 
+                                      onClick={() => handleCambiarEstadoAdmision(adm.id, 'Rechazado')}
+                                      className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white rounded transition-colors text-xs font-bold"
+                                    >
+                                      Rechazar
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-600 text-xs italic">Sin acciones</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeTab === 'matricula' && (
               <div className="animate-fade-in-up space-y-6 max-w-4xl mx-auto">
                 <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
