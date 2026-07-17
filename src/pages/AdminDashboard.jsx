@@ -1475,9 +1475,14 @@ export default function AdminDashboard() {
                   <p style={{ color: C.textSec, fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
                     Se analizarán los perfiles de docentes disponibles y se les asignará la tutoría principal del año escolar de forma óptima, sin repeticiones.
                   </p>
-                  <Btn variant="primary" onClick={handleRunSmartMatch} disabled={isMatching} style={{ width: '100%', justifyContent: 'center' }}>
-                    {isMatching ? 'Procesando asignaciones…' : 'Ejecutar Asignación de Tutores'}
-                  </Btn>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <Btn variant="primary" onClick={handleRunSmartMatch} disabled={isMatching} style={{ width: '100%', justifyContent: 'center' }}>
+                      {isMatching ? 'Procesando secundaria…' : 'Ejecutar Asignación de Secundaria'}
+                    </Btn>
+                    <Btn onClick={handleAssignAndSavePrimaria} disabled={isAssigningPrimaria} style={{ width: '100%', justifyContent: 'center', background: '#10b981' }}>
+                      {isAssigningPrimaria ? 'Procesando primaria…' : 'Ejecutar Asignación de Primaria'}
+                    </Btn>
+                  </div>
 
                   {matchResult && (
                     <div style={{ marginTop: 24 }}>
