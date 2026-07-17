@@ -18,6 +18,7 @@ export default function SecretarioDashboard() {
   // Transaccion State
   const [matriculaDirecta, setMatriculaDirecta] = useState({
     nombres: '', apellidos: '', dni: '', nivel: 'Primaria', grado: '1', seccion: 'A',
+    promedio: '0', conducta: 'A',
     ap_nombre: '', ap_dni: '', ap_correo: '', ap_telefono: '',
     metodo: 'Efectivo', monto: '300.00', efectivoRecibido: ''
   })
@@ -283,6 +284,7 @@ Vuelto a entregar: S/ ${vuelto.toFixed(2)}`)
         
         setMatriculaDirecta({
           nombres: '', apellidos: '', dni: '', nivel: 'Primaria', grado: '1', seccion: 'A',
+          promedio: '0', conducta: 'A',
           ap_nombre: '', ap_dni: '', ap_correo: '', ap_telefono: '',
           metodo: 'Efectivo', monto: '300.00', efectivoRecibido: ''
         })
@@ -500,6 +502,19 @@ Vuelto a entregar: S/ ${vuelto.toFixed(2)}`)
                       <div className="col-span-2 md:col-span-1">
                         <label className="block text-xs text-slate-400 mb-1">Apellidos</label>
                         <input required type="text" value={matriculaDirecta.apellidos} onChange={e=>setMatriculaDirecta({...matriculaDirecta, apellidos: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Nota Promedio</label>
+                        <input required type="number" step="0.1" max="20" min="0" value={matriculaDirecta.promedio} onChange={e=>setMatriculaDirecta({...matriculaDirecta, promedio: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Conducta (Ej. A, B, C)</label>
+                        <select required value={matriculaDirecta.conducta} onChange={e=>setMatriculaDirecta({...matriculaDirecta, conducta: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm">
+                           <option value="A">A</option>
+                           <option value="B">B</option>
+                           <option value="C">C</option>
+                           <option value="AD">AD</option>
+                        </select>
                       </div>
 
                       <div className="col-span-2 mt-4"><h3 className="text-yellow-500 font-bold text-sm border-b border-white/10 pb-2">Datos del Apoderado</h3></div>
