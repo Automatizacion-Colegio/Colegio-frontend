@@ -16,7 +16,13 @@ export default function SecretarioDashboard() {
   const [alertaCierre, setAlertaCierre] = useState(null)
 
   // Transaccion State
-  const [txForm, setTxForm] = useState({ monto: '', concepto: '', metodo: 'Efectivo', alumno_id: '', montoEfectivo: '', montoDigital: '', metodoDigital: 'Yape' })
+  const [matriculaDirecta, setMatriculaDirecta] = useState({
+    nombres: '', apellidos: '', dni: '', nivel: 'Primaria', grado: '1', seccion: 'A',
+    ap_nombre: '', ap_dni: '', ap_correo: '', ap_telefono: '',
+    metodo: 'Efectivo', monto: '300.00', efectivoRecibido: ''
+  })
+  
+  const [cobroModal, setCobroModal] = useState({ open: false, admisionId: null, nombres: '', monto: 300, metodo: 'Efectivo', efectivoRecibido: '' })
   
   // OCR State
   const [isReadingVoucher, setIsReadingVoucher] = useState(false)
@@ -251,59 +257,73 @@ export default function SecretarioDashboard() {
     } catch (e) { console.error(e) }
   }
 
-  const handleTxSubmit = async (e) => {
+  const handleMatriculaDirecta = async (e) => {
     e.preventDefault()
+    if(estadoCaja !== 'Abierta') { alert("Abre la caja primero."); return }
+    
+    // Calcular vuelto
+    if(matriculaDirecta.metodo === 'Efectivo') {
+       if (parseFloat(matriculaDirecta.efectivoRecibido || 0) < parseFloat(matriculaDirecta.monto)) {
+           alert("El efectivo recibido es menor al monto a cobrar.")
+           return
+       }
+    }
+    
     try {
-      if (txForm.metodo === 'Mixto') {
-        const amtEfectivo = parseFloat(txForm.montoEfectivo) || 0;
-        const amtDigital = parseFloat(txForm.montoDigital) || 0;
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/matricula_directa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(matriculaDirecta)
+      })
+      if(res.ok) {
+        const vuelto = matriculaDirecta.metodo === 'Efectivo' ? parseFloat(matriculaDirecta.efectivoRecibido) - parseFloat(matriculaDirecta.monto) : 0
+        if(vuelto > 0) alert(`Matrícula registrada exitosamente.
+Vuelto a entregar: S/ ${vuelto.toFixed(2)}`)
+        else alert("Matrícula registrada exitosamente.")
         
-        if(amtEfectivo > 0) {
-          await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/caja/transaccion`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ 
-              monto: amtEfectivo, 
-              concepto: `${txForm.concepto} (Parte Efectivo)`, 
-              metodo: 'Efectivo',
-              alumno_id: txForm.alumno_id ? parseInt(txForm.alumno_id) : null
-            })
-          })
-        }
-        
-        if(amtDigital > 0) {
-          await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/caja/transaccion`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ 
-              monto: amtDigital, 
-              concepto: `${txForm.concepto} (Parte ${txForm.metodoDigital})`, 
-              metodo: txForm.metodoDigital,
-              alumno_id: txForm.alumno_id ? parseInt(txForm.alumno_id) : null
-            })
-          })
-        }
-      } else {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/caja/transaccion`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ 
-            monto: parseFloat(txForm.monto), 
-            concepto: txForm.concepto, 
-            metodo: txForm.metodo,
-            alumno_id: txForm.alumno_id ? parseInt(txForm.alumno_id) : null
-          })
+        setMatriculaDirecta({
+          nombres: '', apellidos: '', dni: '', nivel: 'Primaria', grado: '1', seccion: 'A',
+          ap_nombre: '', ap_dni: '', ap_correo: '', ap_telefono: '',
+          metodo: 'Efectivo', monto: '300.00', efectivoRecibido: ''
         })
-        if(!res.ok) {
-          const error = await res.json()
-          alert(error.detail)
-          return
-        }
+        fetchCaja()
+        fetchAdmisiones()
+      } else {
+        const err = await res.json()
+        alert(err.detail)
       }
-      
-      setTxForm({ monto: '', concepto: '', metodo: 'Efectivo', alumno_id: '', montoEfectivo: '', montoDigital: '', metodoDigital: 'Yape' })
-      fetchCaja()
-    } catch (e) { console.error(e) }
+    } catch(e) { console.error(e) }
+  }
+
+  const handleCobroModalSubmit = async (e) => {
+    e.preventDefault()
+    if(estadoCaja !== 'Abierta') { alert("Abre la caja primero."); return }
+    if(cobroModal.metodo === 'Efectivo' && parseFloat(cobroModal.efectivoRecibido || 0) < parseFloat(cobroModal.monto)) {
+       alert("Efectivo insuficiente.")
+       return
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secretaria/admisiones/${cobroModal.admisionId}/cobrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+           monto: parseFloat(cobroModal.monto),
+           metodo: cobroModal.metodo
+        })
+      })
+      if(res.ok) {
+        const vuelto = cobroModal.metodo === 'Efectivo' ? parseFloat(cobroModal.efectivoRecibido) - parseFloat(cobroModal.monto) : 0
+        if(vuelto > 0) alert(`Cobro exitoso.
+Vuelto a entregar: S/ ${vuelto.toFixed(2)}`)
+        else alert("Cobro exitoso.")
+        setCobroModal({ ...cobroModal, open: false })
+        fetchCaja()
+        fetchAdmisiones()
+      } else {
+        const err = await res.json()
+        alert(err.detail)
+      }
+    } catch(e) { console.error(e) }
   }
 
   const handleVoucherOCR = async (e) => {
@@ -445,7 +465,7 @@ export default function SecretarioDashboard() {
                 <div className="lg:col-span-8 space-y-6">
                   <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-xl">
                     <div className="flex justify-between items-start mb-6">
-                      <h2 className="text-xl font-bold">Registrar Nuevo Pago</h2>
+                      <h2 className="text-xl font-bold">Crear Admisión / Matrícula Directa</h2>
                       
                       <div className="relative">
                         <input type="file" id="voucher" accept="image/*" className="hidden" onChange={handleVoucherOCR} />
@@ -455,55 +475,89 @@ export default function SecretarioDashboard() {
                       </div>
                     </div>
                     
-                    <form onSubmit={handleTxSubmit} className="grid grid-cols-2 gap-4">
+                    
+                    <form onSubmit={handleMatriculaDirecta} className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2"><h3 className="text-yellow-500 font-bold text-sm border-b border-white/10 pb-2">Datos del Estudiante</h3></div>
+                      
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">DNI del Alumno</label>
+                        <input required type="text" maxLength="8" value={matriculaDirecta.dni} onChange={e=>setMatriculaDirecta({...matriculaDirecta, dni: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1 flex gap-2">
+                         <div className="w-1/2">
+                           <label className="block text-xs text-slate-400 mb-1">Nivel</label>
+                           <select required value={matriculaDirecta.nivel} onChange={e=>setMatriculaDirecta({...matriculaDirecta, nivel: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm"><option>Primaria</option><option>Secundaria</option></select>
+                         </div>
+                         <div className="w-1/4">
+                           <label className="block text-xs text-slate-400 mb-1">Grado</label>
+                           <select required value={matriculaDirecta.grado} onChange={e=>setMatriculaDirecta({...matriculaDirecta, grado: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+                         </div>
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Nombres</label>
+                        <input required type="text" value={matriculaDirecta.nombres} onChange={e=>setMatriculaDirecta({...matriculaDirecta, nombres: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Apellidos</label>
+                        <input required type="text" value={matriculaDirecta.apellidos} onChange={e=>setMatriculaDirecta({...matriculaDirecta, apellidos: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+
+                      <div className="col-span-2 mt-4"><h3 className="text-yellow-500 font-bold text-sm border-b border-white/10 pb-2">Datos del Apoderado</h3></div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Nombre Completo</label>
+                        <input required type="text" value={matriculaDirecta.ap_nombre} onChange={e=>setMatriculaDirecta({...matriculaDirecta, ap_nombre: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">DNI Apoderado</label>
+                        <input required type="text" maxLength="8" value={matriculaDirecta.ap_dni} onChange={e=>setMatriculaDirecta({...matriculaDirecta, ap_dni: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Correo Electrónico</label>
+                        <input required type="email" value={matriculaDirecta.ap_correo} onChange={e=>setMatriculaDirecta({...matriculaDirecta, ap_correo: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Teléfono</label>
+                        <input required type="text" value={matriculaDirecta.ap_telefono} onChange={e=>setMatriculaDirecta({...matriculaDirecta, ap_telefono: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-2 text-white text-sm" />
+                      </div>
+
+                      <div className="col-span-2 mt-4"><h3 className="text-emerald-500 font-bold text-sm border-b border-white/10 pb-2">Cobro de Matrícula</h3></div>
+                      
                       <div className="col-span-2 md:col-span-1">
                         <label className="block text-xs text-slate-400 mb-1">Método de Pago</label>
-                        <select required disabled={estadoCaja !== 'Abierta'} value={txForm.metodo} onChange={e=>setTxForm({...txForm, metodo: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none disabled:opacity-50">
+                        <select required disabled={estadoCaja !== 'Abierta'} value={matriculaDirecta.metodo} onChange={e=>setMatriculaDirecta({...matriculaDirecta, metodo: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none disabled:opacity-50">
                           <option value="Efectivo">Efectivo</option>
                           <option value="Yape">Yape / Plin</option>
                           <option value="Transferencia">Transferencia Bancaria</option>
-                          <option value="Mixto">Mixto (Fraccionado)</option>
                         </select>
                       </div>
                       
-                      {txForm.metodo === 'Mixto' ? (
-                        <div className="col-span-2 grid grid-cols-2 gap-4 border border-emerald-500/30 p-4 rounded-xl bg-emerald-900/10 mb-2">
-                          <div>
-                            <label className="block text-xs text-slate-400 mb-1">Monto en Efectivo (S/)</label>
-                            <input required type="number" step="0.01" value={txForm.montoEfectivo} onChange={e=>setTxForm({...txForm, montoEfectivo: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-emerald-400 font-mono focus:border-emerald-500 outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-slate-400 mb-1">Monto Digital (S/)</label>
-                            <div className="flex gap-2">
-                              <input required type="number" step="0.01" value={txForm.montoDigital} onChange={e=>setTxForm({...txForm, montoDigital: e.target.value})} className="w-1/2 bg-black/40 border border-slate-700 rounded-lg p-3 text-emerald-400 font-mono focus:border-emerald-500 outline-none" />
-                              <select className="w-1/2 bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none" value={txForm.metodoDigital} onChange={e=>setTxForm({...txForm, metodoDigital: e.target.value})}>
-                                <option value="Yape">Yape</option>
-                                <option value="Transferencia">Transferencia</option>
-                              </select>
+                      <div className="col-span-2 md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Monto a Cobrar (S/)</label>
+                        <input required disabled={estadoCaja !== 'Abierta'} type="number" step="0.01" value={matriculaDirecta.monto} onChange={e=>setMatriculaDirecta({...matriculaDirecta, monto: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-emerald-500 outline-none disabled:opacity-50" />
+                      </div>
+
+                      {matriculaDirecta.metodo === 'Efectivo' && (
+                         <div className="col-span-2 bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                               <label className="block text-xs text-emerald-400 mb-1 font-bold">Efectivo Recibido (S/)</label>
+                               <input required type="number" step="0.01" value={matriculaDirecta.efectivoRecibido} onChange={e=>setMatriculaDirecta({...matriculaDirecta, efectivoRecibido: e.target.value})} className="w-40 bg-black/50 border border-emerald-700 rounded-lg p-2 text-emerald-400 font-mono focus:border-emerald-400 outline-none" placeholder="Ej: 50.00"/>
                             </div>
-                          </div>
-                          <div className="col-span-2 text-right">
-                            <span className="text-xs text-slate-400">Total a cobrar: </span>
-                            <span className="font-mono font-bold text-lg text-white">S/ {((parseFloat(txForm.montoEfectivo)||0) + (parseFloat(txForm.montoDigital)||0)).toFixed(2)}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="col-span-2 md:col-span-1">
-                          <label className="block text-xs text-slate-400 mb-1">Monto Total (S/)</label>
-                          <input required disabled={estadoCaja !== 'Abierta'} type="number" step="0.01" value={txForm.monto} onChange={e=>setTxForm({...txForm, monto: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-emerald-500 outline-none disabled:opacity-50" />
-                        </div>
+                            <div className="text-right">
+                               <span className="text-xs text-slate-400">Vuelto a entregar:</span><br/>
+                               <span className="font-mono font-bold text-xl text-emerald-400">
+                                 S/ {Math.max(0, (parseFloat(matriculaDirecta.efectivoRecibido || 0) - parseFloat(matriculaDirecta.monto || 0))).toFixed(2)}
+                               </span>
+                            </div>
+                         </div>
                       )}
 
-                      <div className="col-span-2">
-                        <label className="block text-xs text-slate-400 mb-1">Concepto</label>
-                        <input required disabled={estadoCaja !== 'Abierta'} type="text" value={txForm.concepto} onChange={e=>setTxForm({...txForm, concepto: e.target.value})} placeholder="Ej: Matrícula 2026 - Alumno Juan Pérez" className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none disabled:opacity-50" />
-                      </div>
                       <div className="col-span-2 flex justify-end mt-2">
                         <button disabled={estadoCaja !== 'Abierta'} type="submit" className="px-8 py-3 bg-yellow-600 text-slate-950 rounded-xl font-bold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(202,138,4,0.3)]">
-                          Registrar Ingreso
+                          Matricular y Cobrar
                         </button>
                       </div>
                     </form>
+
                   </div>
 
                   <div className="bg-slate-900 border border-white/10 rounded-3xl p-8">
@@ -581,6 +635,7 @@ export default function SecretarioDashboard() {
                                   {adm.estado_proceso}
                                 </span>
                               </td>
+                              
                               <td className="py-3">
                                 {adm.estado_proceso === 'Evaluación Superada' ? (
                                   <div className="flex gap-2">
@@ -588,7 +643,7 @@ export default function SecretarioDashboard() {
                                       onClick={() => handleCambiarEstadoAdmision(adm.id, 'Admitido (Falta Pago)')}
                                       className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white rounded transition-colors text-xs font-bold"
                                     >
-                                      Admitir
+                                      Aprobar
                                     </button>
                                     <button 
                                       onClick={() => handleCambiarEstadoAdmision(adm.id, 'Rechazado')}
@@ -597,10 +652,18 @@ export default function SecretarioDashboard() {
                                       Rechazar
                                     </button>
                                   </div>
+                                ) : adm.estado_proceso === 'Admitido (Falta Pago)' ? (
+                                  <button 
+                                      onClick={() => setCobroModal({ open: true, admisionId: adm.id, nombres: adm.nombres, monto: 300, metodo: 'Efectivo', efectivoRecibido: '' })}
+                                      className="px-3 py-1 bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-600 hover:text-slate-900 rounded transition-colors text-xs font-bold whitespace-nowrap"
+                                  >
+                                      Cobrar y Matricular
+                                  </button>
                                 ) : (
                                   <span className="text-slate-600 text-xs italic">Sin acciones</span>
                                 )}
                               </td>
+
                             </tr>
                           ))}
                         </tbody>
@@ -761,6 +824,52 @@ export default function SecretarioDashboard() {
           </div>
         </div>
       </main>
+      
+        {/* Modal de Cobro */}
+        {cobroModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+              <h2 className="text-xl font-bold mb-2">Cobrar Admisión</h2>
+              <p className="text-slate-400 text-sm mb-6">Alumno: {cobroModal.nombres}</p>
+              
+              <form onSubmit={handleCobroModalSubmit} className="space-y-4">
+                 <div>
+                    <label className="block text-xs text-slate-400 mb-1">Método de Pago</label>
+                    <select required value={cobroModal.metodo} onChange={e=>setCobroModal({...cobroModal, metodo: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white focus:border-emerald-500 outline-none">
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Yape">Yape / Plin</option>
+                      <option value="Transferencia">Transferencia Bancaria</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="block text-xs text-slate-400 mb-1">Monto a Cobrar (S/)</label>
+                    <input required type="number" step="0.01" value={cobroModal.monto} onChange={e=>setCobroModal({...cobroModal, monto: e.target.value})} className="w-full bg-black/40 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-emerald-500 outline-none" />
+                 </div>
+
+                 {cobroModal.metodo === 'Efectivo' && (
+                     <div className="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                           <label className="block text-xs text-emerald-400 mb-1 font-bold">Efectivo Recibido (S/)</label>
+                           <input required type="number" step="0.01" value={cobroModal.efectivoRecibido} onChange={e=>setCobroModal({...cobroModal, efectivoRecibido: e.target.value})} className="w-32 bg-black/50 border border-emerald-700 rounded-lg p-2 text-emerald-400 font-mono focus:border-emerald-400 outline-none" placeholder="Ej: 50.00"/>
+                        </div>
+                        <div className="text-right">
+                           <span className="text-xs text-slate-400">Vuelto a entregar:</span><br/>
+                           <span className="font-mono font-bold text-xl text-emerald-400">
+                             S/ {Math.max(0, (parseFloat(cobroModal.efectivoRecibido || 0) - parseFloat(cobroModal.monto || 0))).toFixed(2)}
+                           </span>
+                        </div>
+                     </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                     <button type="button" onClick={() => setCobroModal({...cobroModal, open: false})} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancelar</button>
+                     <button type="submit" className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors">Confirmar Pago</button>
+                  </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       <ChatWidget roleName="Asistente Administrativo" />
     </div>
   )
