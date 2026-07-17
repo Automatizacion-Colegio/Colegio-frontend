@@ -546,7 +546,6 @@ export default function AdminDashboard() {
       items: [
         { id: 'alumnos',          label: 'Alumnos',           icon: <GraduationCap size={15} /> },
         { id: 'personal',         label: 'Personal (RRHH)',    icon: <Users size={15} /> },
-        { id: 'asignacion_docente',label: 'Asignación Docente',icon: <UserCheck size={15} /> },
         { id: 'academico',        label: 'Gestión Académica',  icon: <BookOpen size={15} /> },
         { id: 'horarios_docentes',label: 'Horarios Docentes',  icon: <Clock size={15} /> },
       ]
@@ -692,7 +691,7 @@ export default function AdminDashboard() {
               label="Tutores Asignados"
               value={tutoresAsignados.length}
               sub={estadoFlujo && faltanAulas > 0 ? (
-                <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setActiveTab('asignacion_docente')}>
+                <span>
                   Faltan {faltanAulas} aulas
                 </span>
               ) : "asignaciones activas"}
@@ -1223,152 +1222,7 @@ export default function AdminDashboard() {
               </ErrorBoundary>
             )}
 
-            {/* ── ASIGNACIÓN DOCENTE ────────────────────────────── */}
-            {activeTab === 'asignacion_docente' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                  <SectionTitle sub="Malla curricular global. Asigna profesores a cursos y el sistema balanceará horas.">
-                    Asignación Docente
-                  </SectionTitle>
-                  <Btn variant="primary" onClick={handleGuardarAsignacionesInteligentes}>
-                    Guardar — {asignacionNivel === 'PRIMARIA' ? 'Primaria' : 'Secundaria'}
-                  </Btn>
-                </div>
 
-                <div style={{ marginBottom: 24 }}>
-                  <SectionTitle sub="Lista de tutores asignados.">Tutores Asignados</SectionTitle>
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: `1px solid ${C.border}` }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surfaceHigh }}>
-                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Docente</th>
-                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Nivel</th>
-                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Aula</th>
-                          <th style={{ padding: '11px 16px', textAlign: 'left', color: C.textMuted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tutoresAsignados.length === 0 ? (
-                          <tr><td colSpan="4" style={{ padding: '16px', textAlign: 'center', color: C.textMuted }}>No hay tutores asignados</td></tr>
-                        ) : tutoresAsignados.map(t => (
-                          <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                            <td style={{ padding: '11px 16px', color: C.textPrimary }}>{t.docente}</td>
-                            <td style={{ padding: '11px 16px', color: C.textSec }}>{t.nivel}</td>
-                            <td style={{ padding: '11px 16px', color: C.textSec }}>{t.grado}° {t.seccion}</td>
-                            <td style={{ padding: '11px 16px' }}>
-                              <Btn size="sm" variant="danger" onClick={() => handleEliminarTutor(t.id)}>Eliminar</Btn>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Level tabs */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: C.surface, padding: 5, borderRadius: 12, width: 'fit-content', border: `1px solid ${C.border}` }}>
-                  {['PRIMARIA', 'SECUNDARIA'].map(n => (
-                    <button key={n} onClick={() => setAsignacionNivel(n)} style={{
-                      padding: '8px 24px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-                      background: asignacionNivel === n ? C.accent : 'transparent',
-                      color: asignacionNivel === n ? '#fff' : C.textSec,
-                    }}>{n}</button>
-                  ))}
-                </div>
-
-                {asignacionNivel === 'PRIMARIA' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>Tutores de Aula — Cursos Base</div>
-                      <Btn variant="ghost" size="sm" onClick={handleAutoAssignPrimaria} disabled={isAssigningPrimaria}>
-                        {isAssigningPrimaria ? 'Procesando…' : 'Autocompletar'}
-                      </Btn>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: 28 }}>
-                      {[1,2,3,4,5,6].map(g => ['A','B'].map(s => {
-                        const key = `${g}-${s}`
-                        return (
-                          <Card key={key} style={{ padding: '12px' }}>
-                            <Label style={{ fontSize: 11 }}>{g}° "{s}"</Label>
-                            <Select value={primariaTutores[key] || ''} onChange={e => setPrimariaTutores({...primariaTutores, [key]: parseInt(e.target.value) || null})}>
-                              <option value="">Tutor…</option>
-                              {docentesPrimaria.map(d => <option key={d.id} value={d.id}>{d.username.split(' ')[0]}</option>)}
-                            </Select>
-                          </Card>
-                        )
-                      }))}
-                    </div>
-
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>Especialistas Rotativos</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                      {['Inglés', 'Educación Física', 'Religión'].map(curso => (
-                        <Card key={curso}>
-                          <Label>{curso}</Label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {docentesPrimaria.map(d => {
-                              const sel = primariaEspeciales[curso]?.includes(d.id)
-                              return (
-                                <button key={d.id} onClick={() => setPrimariaEspeciales({...primariaEspeciales, [curso]: sel ? [] : [d.id]})} style={{
-                                  padding: '5px 12px', borderRadius: 20, border: `1px solid ${sel ? C.accent : C.border}`,
-                                  background: sel ? C.accentMuted : 'transparent', color: sel ? C.accent : C.textSec,
-                                  cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.12s',
-                                }}>{d.username}</button>
-                              )
-                            })}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {asignacionNivel === 'SECUNDARIA' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>Tutores de Aula (Tutoría Principal)</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: 28 }}>
-                      {[1,2,3,4,5].map(g => ['A','B'].map(s => {
-                        const key = `${g}-${s}`
-                        return (
-                          <Card key={key} style={{ padding: '12px' }}>
-                            <Label style={{ fontSize: 11 }}>{g}° "{s}"</Label>
-                            <Select value={secundariaTutores[key] || ''} onChange={e => setSecundariaTutores({...secundariaTutores, [key]: parseInt(e.target.value) || null})}>
-                              <option value="">Tutor…</option>
-                              {[...docentesPrimaria, ...docentesSecundaria].map(d => <option key={d.id} value={d.id}>{d.username.split(' ')[0]}</option>)}
-                            </Select>
-                          </Card>
-                        )
-                      }))}
-                    </div>
-
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>Especialistas por Curso</div>
-                    <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20, padding: '10px 14px', background: C.accentMuted, borderRadius: 8, border: `1px solid ${C.accent}20` }}>
-                      Selecciona múltiples docentes por materia. El algoritmo dividirá las horas equitativamente.
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-                      {Object.keys(secundariaCursos).map(curso => (
-                        <Card key={curso}>
-                          <Label style={{ marginBottom: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{curso}</Label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {docentesSecundaria.map(d => {
-                              const sel = secundariaCursos[curso]?.includes(d.id)
-                              return (
-                                <button key={d.id} onClick={() => handleMultiSelect(secundariaCursos, setSecundariaCursos, curso, d.id)} style={{
-                                  padding: '5px 12px', borderRadius: 20, border: `1px solid ${sel ? C.accent : C.border}`,
-                                  background: sel ? C.accentMuted : 'transparent', color: sel ? C.accent : C.textSec,
-                                  cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.12s',
-                                }}>{d.username.split(' ')[0]}</button>
-                              )
-                            })}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* ── HORARIOS DOCENTES ─────────────────────────────── */}
             {activeTab === 'horarios_docentes' && (
