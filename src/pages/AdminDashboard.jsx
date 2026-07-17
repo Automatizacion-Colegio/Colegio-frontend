@@ -395,7 +395,7 @@ export default function AdminDashboard() {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Error al generar')
+      if (!res.ok) throw new Error(data.detail || data.error || 'Error al generar')
       const warnings = data.advertencias || []
       setHorarioWarnings(warnings)
       const estado = data.estado === 'OK' ? 'sin conflictos' : `con ${data.bloques_sin_docente} bloque(s) sin docente`
@@ -1247,8 +1247,8 @@ export default function AdminDashboard() {
                                   {grouped[groupKey].map((c, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px', background: C.surfaceHigh, borderRadius: 7 }}>
                                       <span style={{ fontSize: 12, fontWeight: 600, color: C.textPrimary }}>{c.nombre}</span>
-                                      {c.docente_id
-                                        ? <Badge label={`Prof. ID: ${c.docente_id}`} variant="accent" />
+                                      {c.docente_nombre
+                                        ? <Badge label={`Prof. ${c.docente_nombre}`} variant="accent" />
                                         : <Badge label="Sin asignar" variant="danger" />
                                       }
                                     </div>
